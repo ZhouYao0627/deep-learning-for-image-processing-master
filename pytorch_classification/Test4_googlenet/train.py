@@ -8,7 +8,7 @@ from torchvision import transforms, datasets
 import torch.optim as optim
 from tqdm import tqdm
 
-from model import GoogLeNet
+from pytorch_classification.Test4_googlenet.model import GoogLeNet
 
 
 def main():

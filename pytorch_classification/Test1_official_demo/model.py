@@ -23,3 +23,9 @@ class LeNet(nn.Module):
         x = F.relu(self.fc2(x))  # output(84)
         x = self.fc3(x)  # output(10)
         return x
+
+# import torch
+# input1 = torch.rand([32, 3, 32, 32])
+# model = LeNet()
+# print(model)
+# output = model(input1)

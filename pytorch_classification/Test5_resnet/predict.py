@@ -6,7 +6,7 @@ from PIL import Image
 from torchvision import transforms
 import matplotlib.pyplot as plt
 
-from model import resnet34
+from pytorch_classification.Test5_resnet.model import resnet34
 
 
 def main():

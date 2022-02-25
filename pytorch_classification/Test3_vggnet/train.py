@@ -8,7 +8,7 @@ from torchvision import transforms, datasets
 import torch.optim as optim
 from tqdm import tqdm
 
-from model import vgg
+from pytorch_classification.Test3_vggnet.model import vgg
 
 
 def main():
@@ -43,16 +43,14 @@ def main():
     nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
     print('Using {} dataloader workers every process'.format(nw))
 
-    train_loader = torch.utils.data.DataLoader(train_dataset,
-                                               batch_size=batch_size, shuffle=True,
-                                               num_workers=nw)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size,
+                                               shuffle=True, num_workers=nw)
 
     validate_dataset = datasets.ImageFolder(root=os.path.join(image_path, "val"),
                                             transform=data_transform["val"])
     val_num = len(validate_dataset)
-    validate_loader = torch.utils.data.DataLoader(validate_dataset,
-                                                  batch_size=batch_size, shuffle=False,
-                                                  num_workers=nw)
+    validate_loader = torch.utils.data.DataLoader(validate_dataset, batch_size=batch_size,
+                                                  shuffle=False, num_workers=nw)
     print("using {} images for training, {} images for validation.".format(train_num,
                                                                            val_num))
 

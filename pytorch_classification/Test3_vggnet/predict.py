@@ -6,7 +6,7 @@ from PIL import Image
 from torchvision import transforms
 import matplotlib.pyplot as plt
 
-from model import vgg
+from pytorch_classification.Test3_vggnet.model import vgg
 
 
 def main():
@@ -33,7 +33,7 @@ def main():
 
     json_file = open(json_path, "r")
     class_indict = json.load(json_file)
-    
+
     # create model
     model = vgg(model_name="vgg16", num_classes=5).to(device)
     # load model weights

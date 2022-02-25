@@ -6,7 +6,7 @@ from PIL import Image
 from torchvision import transforms
 import matplotlib.pyplot as plt
 
-from model import GoogLeNet
+from pytorch_classification.Test4_googlenet.model import GoogLeNet
 
 
 def main():

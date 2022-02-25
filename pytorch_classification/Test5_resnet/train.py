@@ -1,5 +1,6 @@
 import os
 import json
+import sys
 
 import torch
 import torch.nn as nn
@@ -7,7 +8,7 @@ import torch.optim as optim
 from torchvision import transforms, datasets
 from tqdm import tqdm
 
-from model import resnet34
+from pytorch_classification.Test5_resnet.model import resnet34
 
 
 def main():
@@ -27,8 +28,7 @@ def main():
     data_root = os.path.abspath(os.path.join(os.getcwd(), "../.."))  # get data root path
     image_path = os.path.join(data_root, "data_set", "flower_data")  # flower data set path
     assert os.path.exists(image_path), "{} path does not exist.".format(image_path)
-    train_dataset = datasets.ImageFolder(root=os.path.join(image_path, "train"),
-                                         transform=data_transform["train"])
+    train_dataset = datasets.ImageFolder(root=os.path.join(image_path, "train"), transform=data_transform["train"])
     train_num = len(train_dataset)
 
     # {'daisy':0, 'dandelion':1, 'roses':2, 'sunflower':3, 'tulips':4}
@@ -43,21 +43,19 @@ def main():
     nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
     print('Using {} dataloader workers every process'.format(nw))
 
-    train_loader = torch.utils.data.DataLoader(train_dataset,
-                                               batch_size=batch_size, shuffle=True,
-                                               num_workers=nw)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size,
+                                               shuffle=True, num_workers=nw)
 
     validate_dataset = datasets.ImageFolder(root=os.path.join(image_path, "val"),
                                             transform=data_transform["val"])
     val_num = len(validate_dataset)
-    validate_loader = torch.utils.data.DataLoader(validate_dataset,
-                                                  batch_size=batch_size, shuffle=False,
-                                                  num_workers=nw)
+    validate_loader = torch.utils.data.DataLoader(validate_dataset, batch_size=batch_size,
+                                                  shuffle=False, num_workers=nw)
 
-    print("using {} images for training, {} images for validation.".format(train_num,
-                                                                           val_num))
-    
+    print("using {} images for training, {} images for validation.".format(train_num, val_num))
+
     net = resnet34()
+    # 使用了迁移学习 59-70
     # load pretrain weights
     # download url: https://download.pytorch.org/models/resnet34-333f7ec4.pth
     model_weight_path = "./resnet34-pre.pth"
@@ -67,7 +65,7 @@ def main():
     #     param.requires_grad = False
 
     # change fc layer structure
-    in_channel = net.fc.in_features
+    in_channel = net.fc.in_features  # in_channel = 512*4 = 2048
     net.fc = nn.Linear(in_channel, 5)
     net.to(device)
 
@@ -98,9 +96,7 @@ def main():
             # print statistics
             running_loss += loss.item()
 
-            train_bar.desc = "train epoch[{}/{}] loss:{:.3f}".format(epoch + 1,
-                                                                     epochs,
-                                                                     loss)
+            train_bar.desc = "train epoch[{}/{}] loss:{:.3f}".format(epoch + 1, epochs, loss)
 
         # validate
         net.eval()

@@ -60,7 +60,7 @@ class GoogLeNet(nn.Module):
         # N x 480 x 14 x 14
         x = self.inception4a(x)
         # N x 512 x 14 x 14
-        if self.training and self.aux_logits:    # eval model lose this layer
+        if self.training and self.aux_logits:  # eval model lose this layer
             aux1 = self.aux1(x)
 
         x = self.inception4b(x)
@@ -69,7 +69,7 @@ class GoogLeNet(nn.Module):
         # N x 512 x 14 x 14
         x = self.inception4d(x)
         # N x 528 x 14 x 14
-        if self.training and self.aux_logits:    # eval model lose this layer
+        if self.training and self.aux_logits:  # eval model lose this layer
             aux2 = self.aux2(x)
 
         x = self.inception4e(x)
@@ -88,7 +88,7 @@ class GoogLeNet(nn.Module):
         x = self.dropout(x)
         x = self.fc(x)
         # N x 1000 (num_classes)
-        if self.training and self.aux_logits:   # eval model lose this layer
+        if self.training and self.aux_logits:  # eval model lose this layer
             return x, aux2, aux1
         return x
 
@@ -111,12 +111,12 @@ class Inception(nn.Module):
 
         self.branch2 = nn.Sequential(
             BasicConv2d(in_channels, ch3x3red, kernel_size=1),
-            BasicConv2d(ch3x3red, ch3x3, kernel_size=3, padding=1)   # 保证输出大小等于输入大小
+            BasicConv2d(ch3x3red, ch3x3, kernel_size=3, padding=1)  # 保证输出大小等于输入大小
         )
 
         self.branch3 = nn.Sequential(
             BasicConv2d(in_channels, ch5x5red, kernel_size=1),
-            BasicConv2d(ch5x5red, ch5x5, kernel_size=5, padding=2)   # 保证输出大小等于输入大小
+            BasicConv2d(ch5x5red, ch5x5, kernel_size=5, padding=2)  # 保证输出大小等于输入大小
         )
 
         self.branch4 = nn.Sequential(

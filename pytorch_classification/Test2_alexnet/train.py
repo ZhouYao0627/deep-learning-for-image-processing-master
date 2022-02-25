@@ -10,7 +10,7 @@ import numpy as np
 import torch.optim as optim
 from tqdm import tqdm
 
-from model import AlexNet
+from pytorch_classification.Test2_alexnet.model import AlexNet
 
 
 def main():
@@ -56,8 +56,8 @@ def main():
                                                   batch_size=4, shuffle=False,
                                                   num_workers=nw)
 
-    print("using {} images for training, {} images for validation.".format(train_num,
-                                                                           val_num))
+    print("using {} images for training, {} images for validation.".format(train_num, val_num))
+
     # test_data_iter = iter(validate_loader)
     # test_image, test_label = test_data_iter.next()
     #
@@ -97,9 +97,7 @@ def main():
             # print statistics
             running_loss += loss.item()
 
-            train_bar.desc = "train epoch[{}/{}] loss:{:.3f}".format(epoch + 1,
-                                                                     epochs,
-                                                                     loss)
+            train_bar.desc = "train epoch[{}/{}] loss:{:.3f}".format(epoch + 1, epochs, loss)
 
         # validate
         net.eval()

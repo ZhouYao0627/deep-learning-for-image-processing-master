@@ -1,7 +1,7 @@
 import os
 import torch
 import torch.nn as nn
-from model import resnet34
+from pytorch_classification.Test5_resnet.model import resnet34
 
 
 def main():

@@ -6,7 +6,7 @@ from PIL import Image
 from torchvision import transforms
 import matplotlib.pyplot as plt
 
-from model import AlexNet
+from pytorch_classification.Test2_alexnet.model import AlexNet
 
 
 def main():

@@ -6,6 +6,7 @@ from pytorch_classification.Test1_official_demo.model import LeNet
 
 
 def main():
+    # 定义图像数据的数据预处理方式
     transform = transforms.Compose(
         [transforms.Resize((32, 32)),
          transforms.ToTensor(),
