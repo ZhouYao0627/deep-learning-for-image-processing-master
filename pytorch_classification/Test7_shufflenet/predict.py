@@ -6,7 +6,7 @@ from PIL import Image
 from torchvision import transforms
 import matplotlib.pyplot as plt
 
-from model import shufflenet_v2_x1_0
+from pytorch_classification.Test7_shufflenet.model import shufflenet_v2_x1_0
 
 
 def main():

@@ -6,7 +6,6 @@ import torch.nn as nn
 
 
 def channel_shuffle(x: Tensor, groups: int) -> Tensor:
-
     batch_size, num_channels, height, width = x.size()
     channels_per_group = num_channels // groups
 
@@ -48,8 +47,8 @@ class InvertedResidual(nn.Module):
             self.branch1 = nn.Sequential()
 
         self.branch2 = nn.Sequential(
-            nn.Conv2d(input_c if self.stride > 1 else branch_features, branch_features, kernel_size=1,
-                      stride=1, padding=0, bias=False),
+            nn.Conv2d(input_c if self.stride > 1 else branch_features,
+                      branch_features, kernel_size=1, stride=1, padding=0, bias=False),
             nn.BatchNorm2d(branch_features),
             nn.ReLU(inplace=True),
             self.depthwise_conv(branch_features, branch_features, kernel_s=3, stride=self.stride, padding=1),

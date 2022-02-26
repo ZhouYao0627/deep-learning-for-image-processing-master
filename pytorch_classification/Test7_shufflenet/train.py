@@ -8,9 +8,9 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 import torch.optim.lr_scheduler as lr_scheduler
 
-from model import shufflenet_v2_x1_0
-from my_dataset import MyDataSet
-from utils import read_split_data, train_one_epoch, evaluate
+from pytorch_classification.Test7_shufflenet.model import shufflenet_v2_x1_0
+from pytorch_classification.Test7_shufflenet.my_dataset import MyDataSet
+from pytorch_classification.Test7_shufflenet.utils import read_split_data, train_one_epoch, evaluate
 
 
 def main(args):

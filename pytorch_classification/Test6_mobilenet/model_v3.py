@@ -36,21 +36,16 @@ class ConvBNActivation(nn.Sequential):
             norm_layer = nn.BatchNorm2d
         if activation_layer is None:
             activation_layer = nn.ReLU6
-        super(ConvBNActivation, self).__init__(nn.Conv2d(in_channels=in_planes,
-                                                         out_channels=out_planes,
-                                                         kernel_size=kernel_size,
-                                                         stride=stride,
-                                                         padding=padding,
-                                                         groups=groups,
-                                                         bias=False),
-                                               norm_layer(out_planes),
-                                               activation_layer(inplace=True))
+        super(ConvBNActivation, self).__init__(nn.Conv2d(in_channels=in_planes, out_channels=out_planes,
+                                                         kernel_size=kernel_size, stride=stride,
+                                                         padding=padding, groups=groups, bias=False),
+                                               norm_layer(out_planes), activation_layer(inplace=True))
 
 
-class SqueezeExcitation(nn.Module):
-    def __init__(self, input_c: int, squeeze_factor: int = 4):
+class SqueezeExcitation(nn.Module):  # SE模块，即注意力机制模块
+    def __init__(self, input_c: int, squeeze_factor: int = 4):  # squeeze_c应是输入特征矩阵channel的1/4
         super(SqueezeExcitation, self).__init__()
-        squeeze_c = _make_divisible(input_c // squeeze_factor, 8)
+        squeeze_c = _make_divisible(input_c // squeeze_factor, 8)  # 即满足了1/4的关系
         self.fc1 = nn.Conv2d(input_c, squeeze_c, 1)
         self.fc2 = nn.Conv2d(squeeze_c, input_c, 1)
 
@@ -63,7 +58,7 @@ class SqueezeExcitation(nn.Module):
         return scale * x
 
 
-class InvertedResidualConfig:
+class InvertedResidualConfig:  # InvertedResidualConfig对应的是MobileNetV3中每一个bneck结构的参数配置
     def __init__(self,
                  input_c: int,
                  kernel: int,
@@ -72,7 +67,7 @@ class InvertedResidualConfig:
                  use_se: bool,
                  activation: str,
                  stride: int,
-                 width_multi: float):
+                 width_multi: float):  # expanded_c是第一个升维的卷积，升到的channel数;width_multi是倍率因子
         self.input_c = self.adjust_channels(input_c, width_multi)
         self.kernel = kernel
         self.expanded_c = self.adjust_channels(expanded_c, width_multi)
@@ -92,40 +87,29 @@ class InvertedResidual(nn.Module):
                  norm_layer: Callable[..., nn.Module]):
         super(InvertedResidual, self).__init__()
 
-        if cnf.stride not in [1, 2]:
+        if cnf.stride not in [1, 2]:  # 判断stride是否为1或2，若不是则报错
             raise ValueError("illegal stride value.")
 
-        self.use_res_connect = (cnf.stride == 1 and cnf.input_c == cnf.out_c)
+        self.use_res_connect = (cnf.stride == 1 and cnf.input_c == cnf.out_c)  # 是否满足shortcut连接的条件
 
         layers: List[nn.Module] = []
         activation_layer = nn.Hardswish if cnf.use_hs else nn.ReLU
 
-        # expand
+        # expand  升维
         if cnf.expanded_c != cnf.input_c:
-            layers.append(ConvBNActivation(cnf.input_c,
-                                           cnf.expanded_c,
-                                           kernel_size=1,
-                                           norm_layer=norm_layer,
-                                           activation_layer=activation_layer))
+            layers.append(ConvBNActivation(cnf.input_c, cnf.expanded_c, kernel_size=1,
+                                           norm_layer=norm_layer, activation_layer=activation_layer))
 
         # depthwise
-        layers.append(ConvBNActivation(cnf.expanded_c,
-                                       cnf.expanded_c,
-                                       kernel_size=cnf.kernel,
-                                       stride=cnf.stride,
-                                       groups=cnf.expanded_c,
-                                       norm_layer=norm_layer,
-                                       activation_layer=activation_layer))
+        layers.append(ConvBNActivation(cnf.expanded_c, cnf.expanded_c, kernel_size=cnf.kernel, stride=cnf.stride,
+                                       groups=cnf.expanded_c, norm_layer=norm_layer, activation_layer=activation_layer))
 
         if cnf.use_se:
             layers.append(SqueezeExcitation(cnf.expanded_c))
 
         # project
-        layers.append(ConvBNActivation(cnf.expanded_c,
-                                       cnf.out_c,
-                                       kernel_size=1,
-                                       norm_layer=norm_layer,
-                                       activation_layer=nn.Identity))
+        layers.append(ConvBNActivation(cnf.expanded_c, cnf.out_c, kernel_size=1,
+                                       norm_layer=norm_layer, activation_layer=nn.Identity))
 
         self.block = nn.Sequential(*layers)
         self.out_channels = cnf.out_c
@@ -141,11 +125,11 @@ class InvertedResidual(nn.Module):
 
 class MobileNetV3(nn.Module):
     def __init__(self,
-                 inverted_residual_setting: List[InvertedResidualConfig],
-                 last_channel: int,
+                 inverted_residual_setting: List[InvertedResidualConfig],  # bneck里一系列的参数的列表
+                 last_channel: int,  # 倒数第二个全连接层节点的个数
                  num_classes: int = 1000,
                  block: Optional[Callable[..., nn.Module]] = None,
-                 norm_layer: Optional[Callable[..., nn.Module]] = None):
+                 norm_layer: Optional[Callable[..., nn.Module]] = None):  # block即InvertedResidual
         super(MobileNetV3, self).__init__()
 
         if not inverted_residual_setting:
@@ -164,12 +148,8 @@ class MobileNetV3(nn.Module):
 
         # building first layer
         firstconv_output_c = inverted_residual_setting[0].input_c
-        layers.append(ConvBNActivation(3,
-                                       firstconv_output_c,
-                                       kernel_size=3,
-                                       stride=2,
-                                       norm_layer=norm_layer,
-                                       activation_layer=nn.Hardswish))
+        layers.append(ConvBNActivation(3, firstconv_output_c, kernel_size=3, stride=2,
+                                       norm_layer=norm_layer, activation_layer=nn.Hardswish))
         # building inverted residual blocks
         for cnf in inverted_residual_setting:
             layers.append(block(cnf, norm_layer))
@@ -177,11 +157,8 @@ class MobileNetV3(nn.Module):
         # building last several layers
         lastconv_input_c = inverted_residual_setting[-1].out_c
         lastconv_output_c = 6 * lastconv_input_c
-        layers.append(ConvBNActivation(lastconv_input_c,
-                                       lastconv_output_c,
-                                       kernel_size=1,
-                                       norm_layer=norm_layer,
-                                       activation_layer=nn.Hardswish))
+        layers.append(ConvBNActivation(lastconv_input_c, lastconv_output_c, kernel_size=1,
+                                       norm_layer=norm_layer, activation_layer=nn.Hardswish))
         self.features = nn.Sequential(*layers)
         self.avgpool = nn.AdaptiveAvgPool2d(1)
         self.classifier = nn.Sequential(nn.Linear(lastconv_output_c, last_channel),
@@ -214,8 +191,7 @@ class MobileNetV3(nn.Module):
         return self._forward_impl(x)
 
 
-def mobilenet_v3_large(num_classes: int = 1000,
-                       reduced_tail: bool = False) -> MobileNetV3:
+def mobilenet_v3_large(num_classes: int = 1000, reduced_tail: bool = False) -> MobileNetV3:
     """
     Constructs a large MobileNetV3 architecture from
     "Searching for MobileNetV3" <https://arxiv.org/abs/1905.02244>.
@@ -260,8 +236,7 @@ def mobilenet_v3_large(num_classes: int = 1000,
                        num_classes=num_classes)
 
 
-def mobilenet_v3_small(num_classes: int = 1000,
-                       reduced_tail: bool = False) -> MobileNetV3:
+def mobilenet_v3_small(num_classes: int = 1000, reduced_tail: bool = False) -> MobileNetV3:
     """
     Constructs a large MobileNetV3 architecture from
     "Searching for MobileNetV3" <https://arxiv.org/abs/1905.02244>.

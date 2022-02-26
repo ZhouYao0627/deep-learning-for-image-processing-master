@@ -6,7 +6,7 @@ from PIL import Image
 from torchvision import transforms
 import matplotlib.pyplot as plt
 
-from model_v2 import MobileNetV2
+from pytorch_classification.Test6_mobilenet.model_v2 import MobileNetV2
 
 
 def main():

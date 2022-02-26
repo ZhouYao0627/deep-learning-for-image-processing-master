@@ -8,7 +8,7 @@ import torch.optim as optim
 from torchvision import transforms, datasets
 from tqdm import tqdm
 
-from model_v2 import MobileNetV2
+from pytorch_classification.Test6_mobilenet.model_v2 import MobileNetV2
 
 
 def main():
@@ -46,19 +46,15 @@ def main():
     nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
     print('Using {} dataloader workers every process'.format(nw))
 
-    train_loader = torch.utils.data.DataLoader(train_dataset,
-                                               batch_size=batch_size, shuffle=True,
-                                               num_workers=nw)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size,
+                                               shuffle=True, num_workers=nw)
 
-    validate_dataset = datasets.ImageFolder(root=os.path.join(image_path, "val"),
-                                            transform=data_transform["val"])
+    validate_dataset = datasets.ImageFolder(root=os.path.join(image_path, "val"), transform=data_transform["val"])
     val_num = len(validate_dataset)
-    validate_loader = torch.utils.data.DataLoader(validate_dataset,
-                                                  batch_size=batch_size, shuffle=False,
-                                                  num_workers=nw)
+    validate_loader = torch.utils.data.DataLoader(validate_dataset, batch_size=batch_size,
+                                                  shuffle=False, num_workers=nw)
 
-    print("using {} images for training, {} images for validation.".format(train_num,
-                                                                           val_num))
+    print("using {} images for training, {} images for validation.".format(train_num, val_num))
 
     # create model
     net = MobileNetV2(num_classes=5)
@@ -69,11 +65,14 @@ def main():
     assert os.path.exists(model_weight_path), "file {} dose not exist.".format(model_weight_path)
     pre_weights = torch.load(model_weight_path, map_location=device)
 
+    # 因为官方是在ImageNet上训练的，最后一层全连接的节点个数是1000,而我们的节点个数是等于5的
     # delete classifier weights
     pre_dict = {k: v for k, v in pre_weights.items() if net.state_dict()[k].numel() == v.numel()}
     missing_keys, unexpected_keys = net.load_state_dict(pre_dict, strict=False)
 
     # freeze features weights
+    # 只是训练了最后的全连接层的权重
+    # 若想训练整个网络的权重的话就把下方两行注释掉
     for param in net.features.parameters():
         param.requires_grad = False
 
@@ -105,9 +104,7 @@ def main():
             # print statistics
             running_loss += loss.item()
 
-            train_bar.desc = "train epoch[{}/{}] loss:{:.3f}".format(epoch + 1,
-                                                                     epochs,
-                                                                     loss)
+            train_bar.desc = "train epoch[{}/{}] loss:{:.3f}".format(epoch + 1, epochs, loss)
 
         # validate
         net.eval()
@@ -121,8 +118,7 @@ def main():
                 predict_y = torch.max(outputs, dim=1)[1]
                 acc += torch.eq(predict_y, val_labels.to(device)).sum().item()
 
-                val_bar.desc = "valid epoch[{}/{}]".format(epoch + 1,
-                                                           epochs)
+                val_bar.desc = "valid epoch[{}/{}]".format(epoch + 1, epochs)
         val_accurate = acc / val_num
         print('[epoch %d] train_loss: %.3f  val_accuracy: %.3f' %
               (epoch + 1, running_loss / train_steps, val_accurate))

@@ -29,7 +29,7 @@ class ConvBNReLU(nn.Sequential):
 
 
 class InvertedResidual(nn.Module):
-    def __init__(self, in_channel, out_channel, stride, expand_ratio):
+    def __init__(self, in_channel, out_channel, stride, expand_ratio):  # expand_ratio即论文中的t
         super(InvertedResidual, self).__init__()
         hidden_channel = in_channel * expand_ratio
         self.use_shortcut = stride == 1 and in_channel == out_channel
