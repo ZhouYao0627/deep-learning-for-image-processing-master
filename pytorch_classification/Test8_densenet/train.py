@@ -8,9 +8,9 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 import torch.optim.lr_scheduler as lr_scheduler
 
-from model import densenet121, load_state_dict
-from my_dataset import MyDataSet
-from utils import read_split_data, train_one_epoch, evaluate
+from pytorch_classification.Test8_densenet.model import densenet121, load_state_dict
+from pytorch_classification.Test8_densenet.my_dataset import MyDataSet
+from pytorch_classification.Test8_densenet.utils import read_split_data, train_one_epoch, evaluate
 
 
 def main(args):

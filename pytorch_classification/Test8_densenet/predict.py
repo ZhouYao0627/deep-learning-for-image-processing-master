@@ -6,7 +6,7 @@ from PIL import Image
 from torchvision import transforms
 import matplotlib.pyplot as plt
 
-from model import densenet121
+from pytorch_classification.Test8_densenet.model import densenet121
 
 
 def main():
