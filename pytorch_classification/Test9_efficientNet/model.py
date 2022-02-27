@@ -50,6 +50,7 @@ class DropPath(nn.Module):
     Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks).
     "Deep Networks with Stochastic Depth", https://arxiv.org/pdf/1603.09382.pdf
     """
+
     def __init__(self, drop_prob=None):
         super(DropPath, self).__init__()
         self.drop_prob = drop_prob
@@ -86,7 +87,7 @@ class ConvBNActivation(nn.Sequential):
 
 class SqueezeExcitation(nn.Module):
     def __init__(self,
-                 input_c: int,   # block input channel
+                 input_c: int,  # block input channel
                  expand_c: int,  # block expand channel
                  squeeze_factor: int = 4):
         super(SqueezeExcitation, self).__init__()
@@ -108,14 +109,14 @@ class SqueezeExcitation(nn.Module):
 class InvertedResidualConfig:
     # kernel_size, in_channel, out_channel, exp_ratio, strides, use_SE, drop_connect_rate
     def __init__(self,
-                 kernel: int,          # 3 or 5
+                 kernel: int,  # 3 or 5
                  input_c: int,
                  out_c: int,
                  expanded_ratio: int,  # 1 or 6
-                 stride: int,          # 1 or 2
-                 use_se: bool,         # True
+                 stride: int,  # 1 or 2
+                 use_se: bool,  # True
                  drop_rate: float,
-                 index: str,           # 1a, 2a, 2b, ...
+                 index: str,  # 1a, 2a, 2b, ...
                  width_coefficient: float):
         self.input_c = self.adjust_channels(input_c, width_coefficient)
         self.kernel = kernel
@@ -230,19 +231,21 @@ class EfficientNet(nn.Module):
         bneck_conf = partial(InvertedResidualConfig,
                              width_coefficient=width_coefficient)
 
-        b = 0
-        num_blocks = float(sum(round_repeats(i[-1]) for i in default_cnf))
+        b = 0  # 累计搭建MB模块的次数
+        num_blocks = float(sum(round_repeats(i[-1]) for i in default_cnf))  # 当前EfficientNet网络重复MB模块的次数，即总的MB模块的次数
         inverted_residual_setting = []
-        for stage, args in enumerate(default_cnf):
+        for stage, args in enumerate(default_cnf):  # 遍历每个stage
             cnf = copy.copy(args)
+            # 遍历每个stage中MBConv模块；使用最后一个元素并将其pop出去；i是某一个stage中重复堆叠MBConv模块的次数
             for i in range(round_repeats(cnf.pop(-1))):
-                if i > 0:
+                if i > 0:  # i=0时就按照默认配置文件中的数据进行传递
                     # strides equal 1 except first cnf
                     cnf[-3] = 1  # strides
                     cnf[1] = cnf[2]  # input_channel equal output_channel
 
                 cnf[-1] = args[-2] * b / num_blocks  # update dropout ratio
-                index = str(stage + 1) + chr(i + 97)  # 1a, 2a, 2b, ...
+                # index就是记录当前MBConv模块顺序；通过该方法就能记录当前MBConv结构是属于第几个stage中的第几个MBConv结构
+                index = str(stage + 1) + chr(i + 97)  # 1a, 2a, 2b, ...    这里的stage=0对应的是paper中图里的stage2
                 inverted_residual_setting.append(bneck_conf(*cnf, index))
                 b += 1
 
@@ -250,23 +253,18 @@ class EfficientNet(nn.Module):
         layers = OrderedDict()
 
         # first conv
-        layers.update({"stem_conv": ConvBNActivation(in_planes=3,
-                                                     out_planes=adjust_channels(32),
-                                                     kernel_size=3,
-                                                     stride=2,
-                                                     norm_layer=norm_layer)})
+        layers.update({"stem_conv": ConvBNActivation(in_planes=3, out_planes=adjust_channels(32),
+                                                     kernel_size=3, stride=2, norm_layer=norm_layer)})
 
         # building inverted residual blocks
         for cnf in inverted_residual_setting:
             layers.update({cnf.index: block(cnf, norm_layer)})
 
         # build top
-        last_conv_input_c = inverted_residual_setting[-1].out_c
+        last_conv_input_c = inverted_residual_setting[-1].out_c  # 最后一个MB模块的输出特征的channel作为输入
         last_conv_output_c = adjust_channels(1280)
-        layers.update({"top": ConvBNActivation(in_planes=last_conv_input_c,
-                                               out_planes=last_conv_output_c,
-                                               kernel_size=1,
-                                               norm_layer=norm_layer)})
+        layers.update({"top": ConvBNActivation(in_planes=last_conv_input_c, out_planes=last_conv_output_c,
+                                               kernel_size=1, norm_layer=norm_layer)})
 
         self.features = nn.Sequential(layers)
         self.avgpool = nn.AdaptiveAvgPool2d(1)

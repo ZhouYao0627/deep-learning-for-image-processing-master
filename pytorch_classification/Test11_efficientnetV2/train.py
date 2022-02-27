@@ -8,9 +8,9 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 import torch.optim.lr_scheduler as lr_scheduler
 
-from model import efficientnetv2_s as create_model
-from my_dataset import MyDataSet
-from utils import read_split_data, train_one_epoch, evaluate
+from pytorch_classification.Test11_efficientnetV2.model import efficientnetv2_s as create_model
+from pytorch_classification.Test11_efficientnetV2.my_dataset import MyDataSet
+from pytorch_classification.Test11_efficientnetV2.utils import read_split_data, train_one_epoch, evaluate
 
 
 def main(args):

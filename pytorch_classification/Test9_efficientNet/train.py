@@ -8,9 +8,9 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 import torch.optim.lr_scheduler as lr_scheduler
 
-from model import efficientnet_b0 as create_model
-from my_dataset import MyDataSet
-from utils import read_split_data, train_one_epoch, evaluate
+from pytorch_classification.Test9_efficientNet.model import efficientnet_b0 as create_model
+from pytorch_classification.Test9_efficientNet.my_dataset import MyDataSet
+from pytorch_classification.Test9_efficientNet.utils import read_split_data, train_one_epoch, evaluate
 
 
 def main(args):
@@ -45,31 +45,20 @@ def main(args):
                                    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])}
 
     # 实例化训练数据集
-    train_dataset = MyDataSet(images_path=train_images_path,
-                              images_class=train_images_label,
+    train_dataset = MyDataSet(images_path=train_images_path, images_class=train_images_label,
                               transform=data_transform["train"])
 
     # 实例化验证数据集
-    val_dataset = MyDataSet(images_path=val_images_path,
-                            images_class=val_images_label,
-                            transform=data_transform["val"])
+    val_dataset = MyDataSet(images_path=val_images_path, images_class=val_images_label, transform=data_transform["val"])
 
     batch_size = args.batch_size
     nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
     print('Using {} dataloader workers every process'.format(nw))
-    train_loader = torch.utils.data.DataLoader(train_dataset,
-                                               batch_size=batch_size,
-                                               shuffle=True,
-                                               pin_memory=True,
-                                               num_workers=nw,
-                                               collate_fn=train_dataset.collate_fn)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
+                                               pin_memory=True, num_workers=nw, collate_fn=train_dataset.collate_fn)
 
-    val_loader = torch.utils.data.DataLoader(val_dataset,
-                                             batch_size=batch_size,
-                                             shuffle=False,
-                                             pin_memory=True,
-                                             num_workers=nw,
-                                             collate_fn=val_dataset.collate_fn)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False,
+                                             pin_memory=True, num_workers=nw, collate_fn=val_dataset.collate_fn)
 
     # 如果存在预训练权重则载入
     model = create_model(num_classes=args.num_classes).to(device)
@@ -99,18 +88,13 @@ def main(args):
 
     for epoch in range(args.epochs):
         # train
-        mean_loss = train_one_epoch(model=model,
-                                    optimizer=optimizer,
-                                    data_loader=train_loader,
-                                    device=device,
+        mean_loss = train_one_epoch(model=model, optimizer=optimizer, data_loader=train_loader, device=device,
                                     epoch=epoch)
 
         scheduler.step()
 
         # validate
-        acc = evaluate(model=model,
-                       data_loader=val_loader,
-                       device=device)
+        acc = evaluate(model=model, data_loader=val_loader, device=device)
         print("[epoch {}] accuracy: {}".format(epoch, round(acc, 3)))
         tags = ["loss", "accuracy", "learning_rate"]
         tb_writer.add_scalar(tags[0], mean_loss, epoch)

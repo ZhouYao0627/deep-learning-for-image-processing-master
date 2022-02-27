@@ -6,7 +6,7 @@ from PIL import Image
 from torchvision import transforms
 import matplotlib.pyplot as plt
 
-from model import efficientnet_b0 as create_model
+from pytorch_classification.Test9_efficientNet.model import efficientnet_b0 as create_model
 
 
 def main():
