@@ -6,7 +6,7 @@ from PIL import Image
 from torchvision import transforms
 import matplotlib.pyplot as plt
 
-from vit_model import vit_base_patch16_224_in21k as create_model
+from pytorch_classification.vision_transformer.vit_model import vit_base_patch16_224_in21k as create_model
 
 
 def main():
