@@ -31,6 +31,7 @@ def drop_path(x, drop_prob: float = 0., training: bool = False):
 class DropPath(nn.Module):
     """Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks).
     """
+
     def __init__(self, drop_prob=None):
         super(DropPath, self).__init__()
         self.drop_prob = drop_prob
@@ -46,7 +47,7 @@ class LayerNorm(nn.Module):
     with shape (batch_size, channels, height, width).
     """
 
-    def __init__(self, normalized_shape, eps=1e-6, data_format="channels_last"):
+    def __init__(self, normalized_shape, eps=1e-6, data_format="channels_last"):  # normalized_shape=96
         super().__init__()
         self.weight = nn.Parameter(torch.ones(normalized_shape), requires_grad=True)
         self.bias = nn.Parameter(torch.zeros(normalized_shape), requires_grad=True)
@@ -54,7 +55,7 @@ class LayerNorm(nn.Module):
         self.data_format = data_format
         if self.data_format not in ["channels_last", "channels_first"]:
             raise ValueError(f"not support data format '{self.data_format}'")
-        self.normalized_shape = (normalized_shape,)
+        self.normalized_shape = (normalized_shape,)  # (96,)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if self.data_format == "channels_last":
@@ -79,6 +80,7 @@ class Block(nn.Module):
         drop_rate (float): Stochastic depth rate. Default: 0.0
         layer_scale_init_value (float): Init value for Layer Scale. Default: 1e-6.
     """
+
     def __init__(self, dim, drop_rate=0., layer_scale_init_value=1e-6):
         super().__init__()
         self.dwconv = nn.Conv2d(dim, dim, kernel_size=7, padding=3, groups=dim)  # depthwise conv
@@ -119,19 +121,20 @@ class ConvNeXt(nn.Module):
         layer_scale_init_value (float): Init value for Layer Scale. Default: 1e-6.
         head_init_scale (float): Init scaling value for classifier weights and biases. Default: 1.
     """
+
     def __init__(self, in_chans: int = 3, num_classes: int = 1000, depths: list = None,
                  dims: list = None, drop_path_rate: float = 0., layer_scale_init_value: float = 1e-6,
                  head_init_scale: float = 1.):
         super().__init__()
         self.downsample_layers = nn.ModuleList()  # stem and 3 intermediate downsampling conv layers
-        stem = nn.Sequential(nn.Conv2d(in_chans, dims[0], kernel_size=4, stride=4),
+        stem = nn.Sequential(nn.Conv2d(in_chans, dims[0], kernel_size=4, stride=4),  # 224*224*3 -> 56*56*96
                              LayerNorm(dims[0], eps=1e-6, data_format="channels_first"))
         self.downsample_layers.append(stem)
 
         # 对应stage2-stage4前的3个downsample
         for i in range(3):
             downsample_layer = nn.Sequential(LayerNorm(dims[i], eps=1e-6, data_format="channels_first"),
-                                             nn.Conv2d(dims[i], dims[i+1], kernel_size=2, stride=2))
+                                             nn.Conv2d(dims[i], dims[i + 1], kernel_size=2, stride=2))
             self.downsample_layers.append(downsample_layer)
 
         self.stages = nn.ModuleList()  # 4 feature resolution stages, each consisting of multiple blocks
@@ -159,8 +162,8 @@ class ConvNeXt(nn.Module):
 
     def forward_features(self, x: torch.Tensor) -> torch.Tensor:
         for i in range(4):
-            x = self.downsample_layers[i](x)
-            x = self.stages[i](x)
+            x = self.downsample_layers[i](x)  # Dowmsample
+            x = self.stages[i](x)  # ConvNext Block
 
         return self.norm(x.mean([-2, -1]))  # global average pooling, (N, C, H, W) -> (N, C)
 

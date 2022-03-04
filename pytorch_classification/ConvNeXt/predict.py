@@ -6,7 +6,7 @@ from PIL import Image
 from torchvision import transforms
 import matplotlib.pyplot as plt
 
-from model import convnext_tiny as create_model
+from pytorch_classification.ConvNeXt.model import convnext_tiny as create_model
 
 
 def main():

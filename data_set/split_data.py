@@ -7,7 +7,7 @@ def mk_file(file_path: str):
     if os.path.exists(file_path):
         # 如果文件夹存在，则先删除原文件夹在重新创建
         rmtree(file_path)
-    os.makedirs(file_path)
+    os.makedirs(file_path)  # os.makedirs:递归文件夹创建函数。像mkdir(), 但创建的所有intermediate-level文件夹需要包含子文件夹。
 
 
 def main():
@@ -18,46 +18,46 @@ def main():
     split_rate = 0.1
 
     # 指向你解压后的flower_photos文件夹
-    cwd = os.getcwd()
-    data_root = os.path.join(cwd, "flower_data")
-    origin_flower_path = os.path.join(data_root, "flower_photos")
+    cwd = os.getcwd()  # 返回当前工作目录  /data_set
+    data_root = os.path.join(cwd, "flower_data")  # os.path.join：把目录和文件名合成一个路径    /data_set/flower_data
+    origin_flower_path = os.path.join(data_root, "flower_photos")  # /data_set/flower_data/flower_photos
     assert os.path.exists(origin_flower_path), "path '{}' does not exist.".format(origin_flower_path)
 
-    flower_class = [cla for cla in os.listdir(origin_flower_path)
-                    if os.path.isdir(os.path.join(origin_flower_path, cla))]
+    flower_class = [cla for cla in os.listdir(origin_flower_path)  # os.listdir：返回path指定的文件夹包含的文件或文件夹的名字的列表
+                    if os.path.isdir(os.path.join(origin_flower_path, cla))]  # os.path.isdir：判断路径是否为目录
 
     # 建立保存训练集的文件夹
-    train_root = os.path.join(data_root, "train")
+    train_root = os.path.join(data_root, "train")  # /data_set/flower_data/train
     mk_file(train_root)
     for cla in flower_class:
         # 建立每个类别对应的文件夹
         mk_file(os.path.join(train_root, cla))
 
     # 建立保存验证集的文件夹
-    val_root = os.path.join(data_root, "val")
+    val_root = os.path.join(data_root, "val")  # /data_set/flower_data/val
     mk_file(val_root)
     for cla in flower_class:
         # 建立每个类别对应的文件夹
         mk_file(os.path.join(val_root, cla))
 
     for cla in flower_class:
-        cla_path = os.path.join(origin_flower_path, cla)
-        images = os.listdir(cla_path)
+        cla_path = os.path.join(origin_flower_path, cla)  # /data_set/flower_data/flower_photos/daisy
+        images = os.listdir(cla_path)  # /data_set/flower_data/flower_photos/daisy/...
         num = len(images)
         # 随机采样验证集的索引
-        eval_index = random.sample(images, k=int(num*split_rate))
+        eval_index = random.sample(images, k=int(num * split_rate))  # random.sample(seq, n) 从序列seq中选择n个随机且独立的元素
         for index, image in enumerate(images):
             if image in eval_index:
                 # 将分配至验证集中的文件复制到相应目录
-                image_path = os.path.join(cla_path, image)
-                new_path = os.path.join(val_root, cla)
+                image_path = os.path.join(cla_path, image)  # /data_set/flower_data/flower_photos/daisy/xxx
+                new_path = os.path.join(val_root, cla)  # /data_set/flower_data/val/daisy
                 copy(image_path, new_path)
             else:
                 # 将分配至训练集中的文件复制到相应目录
-                image_path = os.path.join(cla_path, image)
-                new_path = os.path.join(train_root, cla)
+                image_path = os.path.join(cla_path, image)  # /data_set/flower_data/flower_photos/daisy/xxx
+                new_path = os.path.join(train_root, cla)  # /data_set/flower_data/train/daisy
                 copy(image_path, new_path)
-            print("\r[{}] processing [{}/{}]".format(cla, index+1, num), end="")  # processing bar
+            print("\r[{}] processing [{}/{}]".format(cla, index + 1, num), end="")  # processing bar
         print()
 
     print("processing done!")

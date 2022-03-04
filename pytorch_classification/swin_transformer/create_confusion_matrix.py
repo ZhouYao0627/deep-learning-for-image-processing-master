@@ -10,9 +10,9 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from prettytable import PrettyTable
 
-from utils import read_split_data
-from my_dataset import MyDataSet
-from model import swin_base_patch4_window12_384_in22k as create_model
+from pytorch_classification.swin_transformer.utils import read_split_data
+from pytorch_classification.swin_transformer.my_dataset import MyDataSet
+from pytorch_classification.swin_transformer.model import swin_base_patch4_window12_384_in22k as create_model
 
 
 class ConfusionMatrix(object):

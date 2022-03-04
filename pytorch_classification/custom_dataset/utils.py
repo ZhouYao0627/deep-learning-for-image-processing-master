@@ -6,7 +6,7 @@ import random
 import matplotlib.pyplot as plt
 
 
-def read_split_data(root: str, val_rate: float = 0.2):
+def read_split_data(root: str, val_rate: float = 0.2):  # val_rate：验证集占所有的比例
     random.seed(0)  # 保证随机结果可复现
     assert os.path.exists(root), "dataset root: {} does not exist.".format(root)
 
@@ -51,7 +51,7 @@ def read_split_data(root: str, val_rate: float = 0.2):
     print("{} images for training.".format(len(train_images_path)))
     print("{} images for validation.".format(len(val_images_path)))
 
-    plot_image = False
+    plot_image = True
     if plot_image:
         # 绘制每种类别个数柱状图
         plt.bar(range(len(flower_class)), every_class_num, align='center')
@@ -88,7 +88,7 @@ def plot_data_loader_image(data_loader):
             # 反Normalize操作
             img = (img * [0.229, 0.224, 0.225] + [0.485, 0.456, 0.406]) * 255
             label = labels[i].item()
-            plt.subplot(1, plot_num, i+1)
+            plt.subplot(1, plot_num, i + 1)
             plt.xlabel(class_indices[str(label)])
             plt.xticks([])  # 去掉x轴的刻度
             plt.yticks([])  # 去掉y轴的刻度

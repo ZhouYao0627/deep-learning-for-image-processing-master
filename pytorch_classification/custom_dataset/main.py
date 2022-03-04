@@ -3,18 +3,19 @@ import os
 import torch
 from torchvision import transforms
 
-from my_dataset import MyDataSet
-from utils import read_split_data, plot_data_loader_image
+from pytorch_classification.custom_dataset.my_dataset import MyDataSet
+from pytorch_classification.custom_dataset.utils import read_split_data, plot_data_loader_image
 
 # http://download.tensorflow.org/example_images/flower_photos.tgz
-root = "/home/wz/my_github/data_set/flower_data/flower_photos"  # 数据集所在根目录
+# root = "/home/wz/my_github/data_set/flower_data/flower_photos"  # 数据集所在根目录
+root = "D://My_code/pythonProject/deep-learning-for-image-processing-master/data_set/flower_data/flower_photos"
 
 
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("using {} device.".format(device))
 
-    train_images_path, train_images_label, val_images_path, val_images_label = read_split_data(root)
+    train_images_path, train_images_label, val_images_path, val_images_label = read_split_data(root)  # 划分训练集与验证集
 
     data_transform = {
         "train": transforms.Compose([transforms.RandomResizedCrop(224),
