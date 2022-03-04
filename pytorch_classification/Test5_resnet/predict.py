@@ -49,14 +49,13 @@ def main():
         # predict class
         output = torch.squeeze(model(img.to(device))).cpu()
         predict = torch.softmax(output, dim=0)
-        predict_cla = torch.argmax(predict).numpy()
+        predict_cla = torch.argmax(predict).numpy()  # 获取概率最大处对应的索引值
 
-    print_res = "class: {}   prob: {:.3}".format(class_indict[str(predict_cla)],
+    print_res = "class: {}   prob: {:.3}".format(class_indict[str(predict_cla)],  # 打印类别名称和预测概率
                                                  predict[predict_cla].numpy())
     plt.title(print_res)
     for i in range(len(predict)):
-        print("class: {:10}   prob: {:.3}".format(class_indict[str(i)],
-                                                  predict[i].numpy()))
+        print("class: {:10}   prob: {:.3}".format(class_indict[str(i)], predict[i].numpy()))
     plt.show()
 
 

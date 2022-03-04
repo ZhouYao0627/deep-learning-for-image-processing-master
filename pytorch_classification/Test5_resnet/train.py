@@ -29,7 +29,7 @@ def main():
     image_path = os.path.join(data_root, "data_set", "flower_data")  # flower data set path
     assert os.path.exists(image_path), "{} path does not exist.".format(image_path)
     train_dataset = datasets.ImageFolder(root=os.path.join(image_path, "train"), transform=data_transform["train"])
-    train_num = len(train_dataset)
+    train_num = len(train_dataset)  # 3306
 
     # {'daisy':0, 'dandelion':1, 'roses':2, 'sunflower':3, 'tulips':4}
     flower_list = train_dataset.class_to_idx
@@ -40,17 +40,17 @@ def main():
         json_file.write(json_str)
 
     batch_size = 16
-    nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
+    nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers  -> 4
     print('Using {} dataloader workers every process'.format(nw))
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size,
-                                               shuffle=True, num_workers=nw)
+                                               shuffle=True, num_workers=nw)  # 207
 
     validate_dataset = datasets.ImageFolder(root=os.path.join(image_path, "val"),
-                                            transform=data_transform["val"])
-    val_num = len(validate_dataset)
+                                            transform=data_transform["val"])  # 364
+    val_num = len(validate_dataset)  # 364
     validate_loader = torch.utils.data.DataLoader(validate_dataset, batch_size=batch_size,
-                                                  shuffle=False, num_workers=nw)
+                                                  shuffle=False, num_workers=nw)  # 23
 
     print("using {} images for training, {} images for validation.".format(train_num, val_num))
 
@@ -60,12 +60,13 @@ def main():
     # download url: https://download.pytorch.org/models/resnet34-333f7ec4.pth
     model_weight_path = "./resnet34-pre.pth"
     assert os.path.exists(model_weight_path), "file {} does not exist.".format(model_weight_path)
+    # torch.load_state_dict()函数就是用于将预训练的参数权重加载到新的模型之中
     net.load_state_dict(torch.load(model_weight_path, map_location=device))
     # for param in net.parameters():
     #     param.requires_grad = False
 
     # change fc layer structure
-    in_channel = net.fc.in_features  # in_channel = 512*4 = 2048
+    in_channel = net.fc.in_features  # 使用的是34的权重，故in_channel = 512*1 = 512
     net.fc = nn.Linear(in_channel, 5)
     net.to(device)
 
@@ -110,8 +111,7 @@ def main():
                 predict_y = torch.max(outputs, dim=1)[1]
                 acc += torch.eq(predict_y, val_labels.to(device)).sum().item()
 
-                val_bar.desc = "valid epoch[{}/{}]".format(epoch + 1,
-                                                           epochs)
+                val_bar.desc = "valid epoch[{}/{}]".format(epoch + 1, epochs)
 
         val_accurate = acc / val_num
         print('[epoch %d] train_loss: %.3f  val_accuracy: %.3f' %

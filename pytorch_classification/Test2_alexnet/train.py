@@ -26,37 +26,36 @@ def main():
                                    transforms.ToTensor(),
                                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])}
 
-    data_root = os.path.abspath(os.path.join(os.getcwd(), "../.."))  # get data root path
+    data_root = os.path.abspath(os.path.join(os.getcwd(), "../.."))  # get data root path os.getcwd()返回当前目录，join后返回上上层目录
     image_path = os.path.join(data_root, "data_set", "flower_data")  # flower data set path
     assert os.path.exists(image_path), "{} path does not exist.".format(image_path)
     train_dataset = datasets.ImageFolder(root=os.path.join(image_path, "train"),
-                                         transform=data_transform["train"])
-    train_num = len(train_dataset)
+                                         transform=data_transform["train"])  # ImageFolder：3306
+    train_num = len(train_dataset)  # 3306
 
     # {'daisy':0, 'dandelion':1, 'roses':2, 'sunflower':3, 'tulips':4}
-    flower_list = train_dataset.class_to_idx
-    cla_dict = dict((val, key) for key, val in flower_list.items())
+    flower_list = train_dataset.class_to_idx  # 类名对应的索引
+    cla_dict = dict((val, key) for key, val in flower_list.items())  # 将key和value互换，这样到时候预测完之后返回给我们的索引就能直接通过字典得知它所对应的类别
     # write dict into json file
-    json_str = json.dumps(cla_dict, indent=4)
+    json_str = json.dumps(cla_dict, indent=4)  # 编码为json格式  indent:参数根据数据格式缩进显示，读起来更加清晰。
     with open('class_indices.json', 'w') as json_file:
         json_file.write(json_str)
 
     batch_size = 32
     nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
-    print('Using {} dataloader workers every process'.format(nw))
+    print('Using {} dataloader workers every process'.format(nw))  # 4
 
-    train_loader = torch.utils.data.DataLoader(train_dataset,
-                                               batch_size=batch_size, shuffle=True,
-                                               num_workers=nw)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size,
+                                               # 默认情况下遍历dataloader其实就是输出一个batch内的图像和对应的label
+                                               shuffle=True, num_workers=nw)  # 104
 
     validate_dataset = datasets.ImageFolder(root=os.path.join(image_path, "val"),
-                                            transform=data_transform["val"])
-    val_num = len(validate_dataset)
-    validate_loader = torch.utils.data.DataLoader(validate_dataset,
-                                                  batch_size=4, shuffle=False,
-                                                  num_workers=nw)
+                                            transform=data_transform["val"])  # ImageFolder：364
+    val_num = len(validate_dataset)  # 364
+    validate_loader = torch.utils.data.DataLoader(validate_dataset, batch_size=4,
+                                                  shuffle=False, num_workers=nw)  # DataLoader：91
 
-    print("using {} images for training, {} images for validation.".format(train_num, val_num))
+    print("using {} images for training, {} images for validation.".format(train_num, val_num))  # 3306 364
 
     # test_data_iter = iter(validate_loader)
     # test_image, test_label = test_data_iter.next()
@@ -79,20 +78,20 @@ def main():
 
     epochs = 10
     save_path = './AlexNet.pth'
-    best_acc = 0.0
-    train_steps = len(train_loader)
+    best_acc = 0.0  # 定义最佳准确率
+    train_steps = len(train_loader)  # 104
     for epoch in range(epochs):
         # train
-        net.train()
-        running_loss = 0.0
+        net.train()  # 管理BN和DropOut
+        running_loss = 0.0  # 累加在训练过程中的损失
         train_bar = tqdm(train_loader, file=sys.stdout)
         for step, data in enumerate(train_bar):
             images, labels = data
-            optimizer.zero_grad()
-            outputs = net(images.to(device))
-            loss = loss_function(outputs, labels.to(device))
-            loss.backward()
-            optimizer.step()
+            optimizer.zero_grad()  # 清空之前的梯度信息
+            outputs = net(images.to(device))  # 正向传播并将训练图像指认到设备上
+            loss = loss_function(outputs, labels.to(device))  # 计算预测值与真实值的损失并将label指认到设备上
+            loss.backward()  # 反向传播
+            optimizer.step()  # 更新节点参数
 
             # print statistics
             running_loss += loss.item()
@@ -102,19 +101,19 @@ def main():
         # validate
         net.eval()
         acc = 0.0  # accumulate accurate number / epoch
-        with torch.no_grad():
+        with torch.no_grad():  # -> 禁止PyTorch对参数进行跟踪，即在验证过程中是不会计算它的损失梯度的
             val_bar = tqdm(validate_loader, file=sys.stdout)
             for val_data in val_bar:
                 val_images, val_labels = val_data
                 outputs = net(val_images.to(device))
-                predict_y = torch.max(outputs, dim=1)[1]
-                acc += torch.eq(predict_y, val_labels.to(device)).sum().item()
+                predict_y = torch.max(outputs, dim=1)[1]  # 求得输出的最大值  torch.max(a,1) 返回每一行中最大值的那个元素，且返回其索引
+                acc += torch.eq(predict_y, val_labels.to(device)).sum().item()  # 累计验证集中预测正确的样本个数
 
-        val_accurate = acc / val_num
+        val_accurate = acc / val_num  # 除以样本总数得到测试集的准确率
         print('[epoch %d] train_loss: %.3f  val_accuracy: %.3f' %
               (epoch + 1, running_loss / train_steps, val_accurate))
 
-        if val_accurate > best_acc:
+        if val_accurate > best_acc:  # -> 在网络训练完后会得到整个训练过程中的最优参数
             best_acc = val_accurate
             torch.save(net.state_dict(), save_path)
 
