@@ -22,7 +22,6 @@ def drop_path_f(x, drop_prob: float = 0., training: bool = False):
     See discussion: https://github.com/tensorflow/tpu/issues/494#issuecomment-532968956 ... I've opted for
     changing the layer and argument names to 'drop path' rather than mix DropConnect as a layer name and use
     'survival rate' as the argument.
-
     """
     if drop_prob == 0. or not training:
         return x
@@ -37,6 +36,7 @@ def drop_path_f(x, drop_prob: float = 0., training: bool = False):
 class DropPath(nn.Module):
     """Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks).
     """
+
     def __init__(self, drop_prob=None):
         super(DropPath, self).__init__()
         self.drop_prob = drop_prob
@@ -88,6 +88,7 @@ class PatchEmbed(nn.Module):
     """
     2D Image to Patch Embedding
     """
+
     def __init__(self, patch_size=4, in_c=3, embed_dim=96, norm_layer=None):
         super().__init__()
         patch_size = (patch_size, patch_size)
@@ -168,6 +169,7 @@ class PatchMerging(nn.Module):
 class Mlp(nn.Module):
     """ MLP as used in Vision Transformer, MLP-Mixer and related networks
     """
+
     def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.):
         super().__init__()
         out_features = out_features or in_features

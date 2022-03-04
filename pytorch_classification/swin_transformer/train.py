@@ -6,9 +6,9 @@ import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 
-from my_dataset import MyDataSet
-from model import swin_tiny_patch4_window7_224 as create_model
-from utils import read_split_data, train_one_epoch, evaluate
+from pytorch_classification.swin_transformer.my_dataset import MyDataSet
+from pytorch_classification.swin_transformer.model import swin_tiny_patch4_window7_224 as create_model
+from pytorch_classification.swin_transformer.utils import read_split_data, train_one_epoch, evaluate
 
 
 def main(args):
