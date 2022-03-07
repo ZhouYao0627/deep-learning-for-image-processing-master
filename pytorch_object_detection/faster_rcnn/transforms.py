@@ -25,12 +25,12 @@ class RandomHorizontalFlip(object):
     def __init__(self, prob=0.5):
         self.prob = prob
 
-    def __call__(self, image, target):
+    def __call__(self, image, target):  # target即所解析的信息
         if random.random() < self.prob:
             height, width = image.shape[-2:]
             image = image.flip(-1)  # 水平翻转图片
             bbox = target["boxes"]
             # bbox: xmin, ymin, xmax, ymax
             bbox[:, [0, 2]] = width - bbox[:, [2, 0]]  # 翻转对应bbox坐标信息
-            target["boxes"] = bbox
+            target["boxes"] = bbox  # 替换之前的信息
         return image, target
