@@ -1,11 +1,9 @@
 import os
 from collections import OrderedDict
-
 import torch.nn as nn
 import torch
 from torch.jit.annotations import List, Dict
 from torchvision.ops.misc import FrozenBatchNorm2d
-
 from .feature_pyramid_network import LastLevelMaxPool, FeaturePyramidNetwork
 
 
@@ -220,7 +218,7 @@ class BackboneWithFPN(nn.Module):
             in_channels_list=in_channels_list,
             out_channels=out_channels,
             extra_blocks=extra_blocks,
-            )
+        )
 
         self.out_channels = out_channels
 
@@ -231,7 +229,7 @@ class BackboneWithFPN(nn.Module):
 
 
 def resnet50_fpn_backbone(pretrain_path="",
-                          norm_layer=FrozenBatchNorm2d,   # FrozenBatchNorm2d的功能与BatchNorm2d类似，但参数无法更新
+                          norm_layer=FrozenBatchNorm2d,  # FrozenBatchNorm2d的功能与BatchNorm2d类似，但参数无法更新
                           trainable_layers=3,
                           returned_layers=None,
                           extra_blocks=None):

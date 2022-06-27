@@ -8,11 +8,11 @@ import torch.optim.lr_scheduler as lr_scheduler
 from torch.utils.tensorboard import SummaryWriter
 
 
-from models import *
-from build_utils.datasets import *
-from build_utils.utils import *
-from train_utils import train_eval_utils as train_util
-from train_utils import get_coco_api_from_dataset, init_distributed_mode, torch_distributed_zero_first
+from pytorch_object_detection.yolov3_spp.models import *
+from pytorch_object_detection.yolov3_spp.build_utils.datasets import *
+from pytorch_object_detection.yolov3_spp.build_utils.utils import *
+from pytorch_object_detection.yolov3_spp.train_utils import train_eval_utils as train_util
+from pytorch_object_detection.yolov3_spp.train_utils import get_coco_api_from_dataset, init_distributed_mode, torch_distributed_zero_first
 
 
 def main(opt, hyp):

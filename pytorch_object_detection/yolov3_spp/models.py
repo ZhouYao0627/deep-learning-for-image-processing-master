@@ -1,5 +1,6 @@
-from build_utils.layers import *
-from build_utils.parse_config import *
+from pytorch_object_detection.yolov3_spp.build_utils import torch_utils
+from pytorch_object_detection.yolov3_spp.build_utils.layers import *
+from pytorch_object_detection.yolov3_spp.build_utils.parse_config import *
 
 ONNX_EXPORT = False
 
@@ -116,6 +117,7 @@ class YOLOLayer(nn.Module):
     """
     对YOLO的输出进行处理
     """
+
     def __init__(self, anchors, nc, img_size, stride):
         super(YOLOLayer, self).__init__()
         self.anchors = torch.Tensor(anchors)
@@ -202,6 +204,7 @@ class Darknet(nn.Module):
     """
     YOLOv3 spp object detection model
     """
+
     def __init__(self, cfg, img_size=(416, 416), verbose=False):
         super(Darknet, self).__init__()
         # 这里传入的img_size只在导出ONNX模型时起作用
@@ -290,6 +293,3 @@ def get_yolo_layers(self):
     :return:
     """
     return [i for i, m in enumerate(self.module_list) if m.__class__.__name__ == 'YOLOLayer']  # [89, 101, 113]
-
-
-

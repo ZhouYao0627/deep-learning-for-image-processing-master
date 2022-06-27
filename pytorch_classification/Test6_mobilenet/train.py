@@ -23,13 +23,14 @@ def main():
                                      transforms.RandomHorizontalFlip(),
                                      transforms.ToTensor(),
                                      transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
-        "val": transforms.Compose([transforms.Resize(256),
-                                   transforms.CenterCrop(224),
-                                   transforms.ToTensor(),
-                                   transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])}
+        "validation": transforms.Compose([transforms.Resize(256),
+                                          transforms.CenterCrop(224),
+                                          transforms.ToTensor(),
+                                          transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])}
 
     data_root = os.path.abspath(os.path.join(os.getcwd(), "../.."))  # get data root path
-    image_path = os.path.join(data_root, "data_set", "flower_data")  # flower data set path
+    image_path = os.path.join(data_root, "data_set", "NWPU-RESISC45")  # flower data set path
+    # image_path = os.path.join(data_root, "data_set", "flower_data")  # flower data set path
     assert os.path.exists(image_path), "{} path does not exist.".format(image_path)
     train_dataset = datasets.ImageFolder(root=os.path.join(image_path, "train"),
                                          transform=data_transform["train"])
@@ -49,7 +50,8 @@ def main():
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size,
                                                shuffle=True, num_workers=nw)
 
-    validate_dataset = datasets.ImageFolder(root=os.path.join(image_path, "val"), transform=data_transform["val"])
+    validate_dataset = datasets.ImageFolder(root=os.path.join(image_path, "validation"),
+                                            transform=data_transform["validation"])
     val_num = len(validate_dataset)
     validate_loader = torch.utils.data.DataLoader(validate_dataset, batch_size=batch_size,
                                                   shuffle=False, num_workers=nw)
@@ -57,7 +59,7 @@ def main():
     print("using {} images for training, {} images for validation.".format(train_num, val_num))
 
     # create model
-    net = MobileNetV2(num_classes=5)
+    net = MobileNetV2(num_classes=45)
 
     # load pretrain weights
     # download url: https://download.pytorch.org/models/mobilenet_v2-b0353104.pth
@@ -67,10 +69,10 @@ def main():
 
     # 因为官方是在ImageNet上训练的，最后一层全连接的节点个数是1000,而我们的节点个数是等于5的
     # delete classifier weights
-    pre_dict = {k: v for k, v in pre_weights.items() if net.state_dict()[k].numel() == v.numel()}
-    missing_keys, unexpected_keys = net.load_state_dict(pre_dict, strict=False)
+    pre_dict = {k: v for k, v in pre_weights.items() if net.state_dict()[k].numel() == v.numel()}  # 是在ImageNet上预训练的
+    missing_keys, unexpected_keys = net.load_state_dict(pre_dict, strict=False)  # 将除了最后一层的权重载入
 
-    # freeze features weights
+    # freeze features weights  冻结特征提取部分的所有权重
     # 只是训练了最后的全连接层的权重
     # 若想训练整个网络的权重的话就把下方两行注释掉
     for param in net.features.parameters():

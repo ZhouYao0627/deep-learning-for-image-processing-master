@@ -222,9 +222,9 @@ def center_crop_img(img: np.ndarray, size: int):
 
     if new_w == size:
         h = (new_h - size) // 2
-        img = img[h: h+size]
+        img = img[h: h + size]
     else:
         w = (new_w - size) // 2
-        img = img[:, w: w+size]
+        img = img[:, w: w + size]
 
     return img

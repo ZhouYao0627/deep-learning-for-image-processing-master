@@ -5,8 +5,8 @@ import torch.onnx
 import onnx
 import onnxruntime
 import numpy as np
-import models
-from build_utils import img_utils
+from pytorch_object_detection.yolov3_spp import models
+from pytorch_object_detection.yolov3_spp.build_utils import img_utils
 
 device = torch.device("cpu")
 models.ONNX_EXPORT = True
@@ -51,20 +51,20 @@ def main():
 
     save_path = "yolov3spp.onnx"
     # export the model
-    torch.onnx.export(model,                       # model being run
-                      x,                           # model input (or a tuple for multiple inputs)
-                      save_path,                   # where to save the model (can be a file or file-like object)
-                      export_params=True,          # store the trained parameter weights inside the model file
-                      opset_version=12,            # the ONNX version to export the model to
-                      do_constant_folding=True,    # whether to execute constant folding for optimization
-                      input_names=["images"],       # the model's input names
+    torch.onnx.export(model,  # model being run
+                      x,  # model input (or a tuple for multiple inputs)
+                      save_path,  # where to save the model (can be a file or file-like object)
+                      export_params=True,  # store the trained parameter weights inside the model file
+                      opset_version=12,  # the ONNX version to export the model to
+                      do_constant_folding=True,  # whether to execute constant folding for optimization
+                      input_names=["images"],  # the model's input names
                       # output_names=["classes", "boxes"],     # the model's output names
                       output_names=["prediction"],
                       dynamic_axes={"images": {0: "batch_size"},  # variable length axes
                                     "prediction": {0: "batch_size"}})
-                                    # "classes": {0: "batch_size"},
-                                    # "confidence": {0: "batch_size"},
-                                    # "boxes": {0: "batch_size"}})
+    # "classes": {0: "batch_size"},
+    # "confidence": {0: "batch_size"},
+    # "boxes": {0: "batch_size"}})
 
     # check onnx model
     onnx_model = onnx.load(save_path)

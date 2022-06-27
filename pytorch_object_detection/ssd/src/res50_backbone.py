@@ -15,9 +15,9 @@ class Bottleneck(nn.Module):
                                kernel_size=3, stride=stride, bias=False, padding=1)
         self.bn2 = nn.BatchNorm2d(out_channel)
         # -----------------------------------------
-        self.conv3 = nn.Conv2d(in_channels=out_channel, out_channels=out_channel*self.expansion,
+        self.conv3 = nn.Conv2d(in_channels=out_channel, out_channels=out_channel * self.expansion,
                                kernel_size=1, stride=1, bias=False)  # unsqueeze channels
-        self.bn3 = nn.BatchNorm2d(out_channel*self.expansion)
+        self.bn3 = nn.BatchNorm2d(out_channel * self.expansion)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
 
@@ -44,20 +44,18 @@ class Bottleneck(nn.Module):
 
 
 class ResNet(nn.Module):
-
     def __init__(self, block, blocks_num, num_classes=1000, include_top=True):
         super(ResNet, self).__init__()
         self.include_top = include_top
         self.in_channel = 64
 
-        self.conv1 = nn.Conv2d(3, self.in_channel, kernel_size=7, stride=2,
-                               padding=3, bias=False)
+        self.conv1 = nn.Conv2d(3, self.in_channel, kernel_size=7, stride=2, padding=3, bias=False)  # 从这儿
         self.bn1 = nn.BatchNorm2d(self.in_channel)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, blocks_num[0])
         self.layer2 = self._make_layer(block, 128, blocks_num[1], stride=2)
-        self.layer3 = self._make_layer(block, 256, blocks_num[2], stride=2)
+        self.layer3 = self._make_layer(block, 256, blocks_num[2], stride=2)  # 到这儿为[:7]
         self.layer4 = self._make_layer(block, 512, blocks_num[3], stride=2)
         if self.include_top:
             self.avgpool = nn.AdaptiveAvgPool2d((1, 1))  # output size = (1, 1)

@@ -42,6 +42,7 @@ class FasterRCNNBase(nn.Module):
 
         return detections
 
+    # 注：这里输入的images的大小都是不同的，后面会进行预处理将这些图片放入同样大小的tensor中打包成一个batch
     def forward(self, images, targets=None):
         # type: (List[Tensor], Optional[List[Dict[str, Tensor]]]) -> Tuple[Dict[str, Tensor], List[Dict[str, Tensor]]]
         """
@@ -56,30 +57,31 @@ class FasterRCNNBase(nn.Module):
                 like `scores`, `labels` and `mask` (for Mask R-CNN models).
 
         """
-        if self.training and targets is None:
+        if self.training and targets is None:  # 判断是否为训练模式->通过model.train或model.eval控制
             raise ValueError("In training mode, targets should be passed")
 
         if self.training:
             assert targets is not None
-            for target in targets:         # 进一步判断传入的target的boxes参数是否符合规定
+            for target in targets:  # 进一步判断传入的target的boxes参数是否符合规定
                 boxes = target["boxes"]
                 if isinstance(boxes, torch.Tensor):
                     if len(boxes.shape) != 2 or boxes.shape[-1] != 4:
                         raise ValueError("Expected target boxes to be a tensor"
                                          "of shape [N, 4], got {:}.".format(
-                                          boxes.shape))
+                            boxes.shape))
                 else:
                     raise ValueError("Expected target boxes to be of type "
                                      "Tensor, got {:}.".format(type(boxes)))
 
-        original_image_sizes = torch.jit.annotate(List[Tuple[int, int]], [])
+        original_image_sizes = torch.jit.annotate(List[Tuple[int, int]], [])  # 存储每张图像原始的尺寸
         for img in images:
-            val = img.shape[-2:]
+            val = img.shape[-2:]  # 这后两个是图像的高和宽
             assert len(val) == 2  # 防止输入的是个一维向量
             original_image_sizes.append((val[0], val[1]))
         # original_image_sizes = [img.shape[-2:] for img in images]
 
-        images, targets = self.transform(images, targets)  # 对图像进行预处理
+        # 通过这个self.transform方法后
+        images, targets = self.transform(images, targets)  # 对图像进行预处理 -> 这个预处理是原码中的GeneralizedRCNNTransform，也即图中的
 
         # print(images.tensors.shape)
         features = self.backbone(images.tensors)  # 将图像输入backbone得到特征图
@@ -246,11 +248,11 @@ class FasterRCNN(FasterRCNNBase):
 
     def __init__(self, backbone, num_classes=None,
                  # transform parameter
-                 min_size=800, max_size=1333,      # 预处理resize时限制的最小尺寸与最大尺寸
+                 min_size=800, max_size=1333,  # 预处理resize时限制的最小尺寸与最大尺寸
                  image_mean=None, image_std=None,  # 预处理normalize时使用的均值和方差
                  # RPN parameters
                  rpn_anchor_generator=None, rpn_head=None,
-                 rpn_pre_nms_top_n_train=2000, rpn_pre_nms_top_n_test=1000,    # rpn中在nms处理前保留的proposal数(根据score)
+                 rpn_pre_nms_top_n_train=2000, rpn_pre_nms_top_n_test=1000,  # rpn中在nms处理前保留的proposal数(根据score)
                  rpn_post_nms_top_n_train=2000, rpn_post_nms_top_n_test=1000,  # rpn中在nms处理后保留的proposal数
                  rpn_nms_thresh=0.7,  # rpn中进行nms处理时使用的iou阈值
                  rpn_fg_iou_thresh=0.7, rpn_bg_iou_thresh=0.3,  # rpn计算损失时，采集正负样本设置的阈值
@@ -260,7 +262,7 @@ class FasterRCNN(FasterRCNNBase):
                  box_roi_pool=None, box_head=None, box_predictor=None,
                  # 移除低目标概率      fast rcnn中进行nms处理的阈值   对预测结果根据score排序取前100个目标
                  box_score_thresh=0.05, box_nms_thresh=0.5, box_detections_per_img=100,
-                 box_fg_iou_thresh=0.5, box_bg_iou_thresh=0.5,   # fast rcnn计算误差时，采集正负样本设置的阈值
+                 box_fg_iou_thresh=0.5, box_bg_iou_thresh=0.5,  # fast rcnn计算误差时，采集正负样本设置的阈值
                  box_batch_size_per_image=512, box_positive_fraction=0.25,  # fast rcnn计算误差时采样的样本数，以及正样本占所有样本的比例
                  bbox_reg_weights=None):
         if not hasattr(backbone, "out_channels"):

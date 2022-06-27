@@ -4,10 +4,10 @@ import datetime
 import torch
 
 import transforms
-from my_dataset import VOCDataSet
-from src import SSD300, Backbone
-import train_utils.train_eval_utils as utils
-from train_utils import get_coco_api_from_dataset
+from pytorch_object_detection.ssd.my_dataset import VOCDataSet
+from pytorch_object_detection.ssd.src import SSD300, Backbone
+import pytorch_object_detection.ssd.train_utils.train_eval_utils as utils
+from pytorch_object_detection.ssd.train_utils import get_coco_api_from_dataset
 
 
 def create_model(num_classes=21):
@@ -90,17 +90,14 @@ def main(parser_data):
                                                   num_workers=nw,
                                                   collate_fn=train_dataset.collate_fn)
 
-    model = create_model(num_classes=args.num_classes+1)
+    model = create_model(num_classes=args.num_classes + 1)
     model.to(device)
 
     # define optimizer
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=0.0005,
-                                momentum=0.9, weight_decay=0.0005)
+    optimizer = torch.optim.SGD(params, lr=0.0005, momentum=0.9, weight_decay=0.0005)
     # learning rate scheduler
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-                                                   step_size=5,
-                                                   gamma=0.3)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.3)
 
     # 如果指定了上次训练保存的权重文件地址，则接着上次结果接着训练
     if parser_data.resume != "":
@@ -118,18 +115,15 @@ def main(parser_data):
     # 提前加载验证集数据，以免每次验证时都要重新加载一次数据，节省时间
     val_data = get_coco_api_from_dataset(val_data_loader.dataset)
     for epoch in range(parser_data.start_epoch, parser_data.epochs):
-        mean_loss, lr = utils.train_one_epoch(model=model, optimizer=optimizer,
-                                              data_loader=train_data_loader,
-                                              device=device, epoch=epoch,
-                                              print_freq=50)
+        mean_loss, lr = utils.train_one_epoch(model=model, optimizer=optimizer, data_loader=train_data_loader,
+                                              device=device, epoch=epoch, print_freq=50)
         train_loss.append(mean_loss.item())
         learning_rate.append(lr)
 
         # update learning rate
         lr_scheduler.step()
 
-        coco_info = utils.evaluate(model=model, data_loader=val_data_loader,
-                                   device=device, data_set=val_data)
+        coco_info = utils.evaluate(model=model, data_loader=val_data_loader, device=device, data_set=val_data)
 
         # write into txt
         with open(results_file, "a") as f:
@@ -150,12 +144,12 @@ def main(parser_data):
 
     # plot loss and lr curve
     if len(train_loss) != 0 and len(learning_rate) != 0:
-        from plot_curve import plot_loss_and_lr
+        from pytorch_object_detection.ssd.plot_curve import plot_loss_and_lr
         plot_loss_and_lr(train_loss, learning_rate)
 
     # plot mAP curve
     if len(val_map) != 0:
-        from plot_curve import plot_map
+        from pytorch_object_detection.ssd.plot_curve import plot_map
         plot_map(val_map)
 
     # inputs = torch.rand(size=(2, 3, 300, 300))

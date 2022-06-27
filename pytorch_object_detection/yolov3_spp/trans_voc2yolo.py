@@ -11,7 +11,7 @@ import shutil
 
 
 # voc数据集根目录以及版本
-voc_root = "/data/VOCdevkit"
+voc_root = "./data/VOCdevkit"
 voc_version = "VOC2012"
 
 # 转换的训练集以及验证集对应txt文件

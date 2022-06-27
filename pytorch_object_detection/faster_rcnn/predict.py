@@ -8,9 +8,9 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 from torchvision import transforms
-from network_files import FasterRCNN, FastRCNNPredictor, AnchorsGenerator
-from backbone import resnet50_fpn_backbone, MobileNetV2
-from draw_box_utils import draw_box
+from pytorch_object_detection.faster_rcnn.network_files import FasterRCNN, FastRCNNPredictor, AnchorsGenerator
+from pytorch_object_detection.faster_rcnn.backbone import resnet50_fpn_backbone, MobileNetV2
+from pytorch_object_detection.faster_rcnn.draw_box_utils import draw_box
 
 
 def create_model(num_classes):
@@ -108,4 +108,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

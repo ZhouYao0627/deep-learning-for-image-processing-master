@@ -4,12 +4,12 @@ import datetime
 import torch
 import torchvision
 
-import transforms
-from network_files import FasterRCNN, AnchorsGenerator
-from backbone import MobileNetV2, vgg
-from my_dataset import VOCDataSet
-from train_utils import GroupedBatchSampler, create_aspect_ratio_groups
-from train_utils import train_eval_utils as utils
+from torchvision import transforms
+from pytorch_object_detection.faster_rcnn.network_files import FasterRCNN, AnchorsGenerator
+from pytorch_object_detection.faster_rcnn.backbone import MobileNetV2, vgg
+from pytorch_object_detection.faster_rcnn.my_dataset import VOCDataSet
+from pytorch_object_detection.faster_rcnn.train_utils import GroupedBatchSampler, create_aspect_ratio_groups
+from pytorch_object_detection.faster_rcnn.train_utils import train_eval_utils as utils
 
 
 def create_model(num_classes):
@@ -27,13 +27,11 @@ def create_model(num_classes):
                                         aspect_ratios=((0.5, 1.0, 2.0),))
 
     roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],  # 在哪些特征层上进行roi pooling
-                                                    output_size=[7, 7],   # roi_pooling输出特征矩阵尺寸
+                                                    output_size=[7, 7],  # roi_pooling输出特征矩阵尺寸
                                                     sampling_ratio=2)  # 采样率
 
-    model = FasterRCNN(backbone=backbone,
-                       num_classes=num_classes,
-                       rpn_anchor_generator=anchor_generator,
-                       box_roi_pool=roi_pooler)
+    model = FasterRCNN(backbone=backbone, num_classes=num_classes,
+                       rpn_anchor_generator=anchor_generator, box_roi_pool=roi_pooler)
 
     return model
 
@@ -55,7 +53,7 @@ def main():
         "val": transforms.Compose([transforms.ToTensor()])
     }
 
-    VOC_root = "./"  # VOCdevkit
+    VOC_root = "./"
     aspect_ratio_group_factor = 3
     batch_size = 8
     amp = False  # 是否使用混合精度训练，需要GPU支持
@@ -169,18 +167,16 @@ def main():
 
     # define optimizer
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=0.005,
-                                momentum=0.9, weight_decay=0.0005)
+    optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
+
     # learning rate scheduler
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
-                                                   step_size=3,
-                                                   gamma=0.33)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.33)
+
     num_epochs = 20
-    for epoch in range(init_epochs, num_epochs+init_epochs, 1):
+    for epoch in range(init_epochs, num_epochs + init_epochs, 1):
         # train for one epoch, printing every 50 iterations
-        mean_loss, lr = utils.train_one_epoch(model, optimizer, train_data_loader,
-                                              device, epoch, print_freq=50,
-                                              warmup=True, scaler=scaler)
+        mean_loss, lr = utils.train_one_epoch(model, optimizer, train_data_loader, device, epoch,
+                                              print_freq=50, warmup=True, scaler=scaler)
         train_loss.append(mean_loss.item())
         learning_rate.append(lr)
 
@@ -201,7 +197,7 @@ def main():
 
         # save weights
         # 仅保存最后5个epoch的权重
-        if epoch in range(num_epochs+init_epochs)[-5:]:
+        if epoch in range(num_epochs + init_epochs)[-5:]:
             save_files = {
                 'model': model.state_dict(),
                 'optimizer': optimizer.state_dict(),
@@ -211,12 +207,12 @@ def main():
 
     # plot loss and lr curve
     if len(train_loss) != 0 and len(learning_rate) != 0:
-        from plot_curve import plot_loss_and_lr
+        from pytorch_object_detection.faster_rcnn.plot_curve import plot_loss_and_lr
         plot_loss_and_lr(train_loss, learning_rate)
 
     # plot mAP curve
     if len(val_map) != 0:
-        from plot_curve import plot_map
+        from pytorch_object_detection.faster_rcnn.plot_curve import plot_map
         plot_map(val_map)
 
 

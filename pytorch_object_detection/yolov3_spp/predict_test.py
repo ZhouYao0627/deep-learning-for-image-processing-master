@@ -7,9 +7,9 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 
-from build_utils import img_utils, torch_utils, utils
-from models import Darknet
-from draw_box_utils import draw_box
+from pytorch_object_detection.yolov3_spp.build_utils import img_utils, torch_utils, utils
+from pytorch_object_detection.yolov3_spp.models import Darknet
+from pytorch_object_detection.yolov3_spp.draw_box_utils import draw_box
 
 
 def main():

@@ -2,25 +2,27 @@ import torch
 from torch import nn, Tensor
 from torch.jit.annotations import List
 
-from .res50_backbone import resnet50
-from .utils import dboxes300_coco, Encoder, PostProcess
+# from .res50_backbone import resnet50
+# from .utils import dboxes300_coco, Encoder, PostProcess
+from pytorch_object_detection.ssd.src.res50_backbone import resnet50
+from pytorch_object_detection.ssd.src.utils import dboxes300_coco, Encoder, PostProcess
 
 
 class Backbone(nn.Module):
     def __init__(self, pretrain_path=None):
         super(Backbone, self).__init__()
         net = resnet50()
-        self.out_channels = [1024, 512, 512, 256, 256, 256]
+        self.out_channels = [1024, 512, 512, 256, 256, 256]  # 对应的是预测特征层的channels
 
-        if pretrain_path is not None:
+        if pretrain_path is not None:  # 判断是否有预训练权重的路径
             net.load_state_dict(torch.load(pretrain_path))
 
-        self.feature_extractor = nn.Sequential(*list(net.children())[:7])
+        self.feature_extractor = nn.Sequential(*list(net.children())[:7])  # 特征提取部分，从conv1到conv4_x
 
         conv4_block1 = self.feature_extractor[-1][0]
 
         # 修改conv4_block1的步距，从2->1
-        conv4_block1.conv1.stride = (1, 1)
+        conv4_block1.conv1.stride = (1, 1)  # 对于ResNet50而言，这行代码没用；对ResNet18，ResNet34有用
         conv4_block1.conv2.stride = (1, 1)
         conv4_block1.downsample[0].stride = (1, 1)
 
@@ -34,16 +36,16 @@ class SSD300(nn.Module):
         super(SSD300, self).__init__()
         if backbone is None:
             raise Exception("backbone is None")
-        if not hasattr(backbone, "out_channels"):
+        if not hasattr(backbone, "out_channels"):  # hasattr()函数用于判断对象是否包含对应的属性。
             raise Exception("the backbone not has attribute: out_channel")
         self.feature_extractor = backbone
 
         self.num_classes = num_classes
         # out_channels = [1024, 512, 512, 256, 256, 256] for resnet50
-        self._build_additional_features(self.feature_extractor.out_channels)
-        self.num_defaults = [4, 6, 6, 6, 4, 4]
-        location_extractors = []
-        confidence_extractors = []
+        self._build_additional_features(self.feature_extractor.out_channels)  # 这一步构造好了额外层结构
+        self.num_defaults = [4, 6, 6, 6, 4, 4]  # 每个预测特征层的每个cell生成的default box数量
+        location_extractors = []  # 边界框回归参数预测器
+        confidence_extractors = []  # 目标类别回归预测器
 
         # out_channels = [1024, 512, 512, 256, 256, 256] for resnet50
         for nd, oc in zip(self.num_defaults, self.feature_extractor.out_channels):
@@ -53,7 +55,7 @@ class SSD300(nn.Module):
 
         self.loc = nn.ModuleList(location_extractors)
         self.conf = nn.ModuleList(confidence_extractors)
-        self._init_weights()
+        self._init_weights()  # 对额外层结构和预测器们进行权重初始化
 
         default_box = dboxes300_coco()
         self.compute_loss = Loss(default_box)
@@ -68,8 +70,11 @@ class SSD300(nn.Module):
         """
         additional_blocks = []
         # input_size = [1024, 512, 512, 256, 256, 256] for resnet50
-        middle_channels = [256, 256, 128, 128, 128]
+        middle_channels = [256, 256, 128, 128, 128]  # 5个额外添加的层结构中的第一个卷积层的channel
         for i, (input_ch, output_ch, middle_ch) in enumerate(zip(input_size[:-1], input_size[1:], middle_channels)):
+            # input_ch：[1024, 512, 512, 256, 256]
+            # middle_ch：[256, 256, 128, 128, 128]
+            # output_ch：[512, 512, 256, 256, 256]
             padding, stride = (1, 2) if i < 3 else (0, 1)
             layer = nn.Sequential(
                 nn.Conv2d(input_ch, middle_ch, kernel_size=1, bias=False),
@@ -95,25 +100,27 @@ class SSD300(nn.Module):
         confs = []
         for f, l, c in zip(features, loc_extractor, conf_extractor):
             # [batch, n*4, feat_size, feat_size] -> [batch, 4, -1]
-            locs.append(l(f).view(f.size(0), 4, -1))
+            locs.append(l(f).view(f.size(0), 4, -1))  # 通过view调整格式
             # [batch, n*classes, feat_size, feat_size] -> [batch, classes, -1]
-            confs.append(c(f).view(f.size(0), self.num_classes, -1))
+            confs.append(c(f).view(f.size(0), self.num_classes, -1))  # 通过view调整格式
 
         locs, confs = torch.cat(locs, 2).contiguous(), torch.cat(confs, 2).contiguous()
         return locs, confs
 
-    def forward(self, image, targets=None):
-        x = self.feature_extractor(image)
+    def forward(self, image, targets=None):  # image即打包好的一批图片数据
+        x = self.feature_extractor(image)  # 生成特征矩阵x -> 这里的x即Conv4_x对应的一系列层结构的输出，即38*38*1024
 
         # Feature Map 38x38x1024, 19x19x512, 10x10x512, 5x5x256, 3x3x256, 1x1x256
-        detection_features = torch.jit.annotate(List[Tensor], [])  # [x]
+        detection_features = torch.jit.annotate(List[Tensor], [])  # [x]  # detection_features：存储每一个预测特征层的列表
+        # torch.jit.annotate(the_type, the_value)：该函数是一个传递函数，返回值为the_value，
+        # 用于提示TorchScript编译器the_value的类型。当该函数运行在TorchScript以外时，为空操作。
         detection_features.append(x)
         for layer in self.additional_blocks:
             x = layer(x)
-            detection_features.append(x)
+            detection_features.append(x)  # 将每一个预测特征层进行添加
 
         # Feature Map 38x38x4, 19x19x6, 10x10x6, 5x5x6, 3x3x4, 1x1x4
-        locs, confs = self.bbox_view(detection_features, self.loc, self.conf)
+        locs, confs = self.bbox_view(detection_features, self.loc, self.conf)  # 根据bbox_view方法得到所有预测特征层上locs参数与confs参数
 
         # For SSD 300, shall return nbatch x 8732 x {nlabels, nlocs} results
         # 38x38x4 + 19x19x6 + 10x10x6 + 5x5x6 + 3x3x4 + 1x1x4 = 8732
@@ -129,12 +136,12 @@ class SSD300(nn.Module):
             # print(labels_out.is_contiguous())
 
             # ploc, plabel, gloc, glabel
-            loss = self.compute_loss(locs, confs, bboxes_out, labels_out)
+            loss = self.compute_loss(locs, confs, bboxes_out, labels_out)  # 计算损失
             return {"total_losses": loss}
 
         # 将预测回归参数叠加到default box上得到最终预测box，并执行非极大值抑制虑除重叠框
         # results = self.encoder.decode_batch(locs, confs)
-        results = self.postprocess(locs, confs)
+        results = self.postprocess(locs, confs)  # 进行后处理
         return results
 
 
@@ -145,6 +152,7 @@ class Loss(nn.Module):
         2. Localization Loss: Only on positive labels
         Suppose input dboxes has the shape 8732x4
     """
+
     def __init__(self, dboxes):
         super(Loss, self).__init__()
         # Two factor are from following links
@@ -154,8 +162,7 @@ class Loss(nn.Module):
 
         self.location_loss = nn.SmoothL1Loss(reduction='none')
         # [num_anchors, 4] -> [4, num_anchors] -> [1, 4, num_anchors]
-        self.dboxes = nn.Parameter(dboxes(order="xywh").transpose(0, 1).unsqueeze(dim=0),
-                                   requires_grad=False)
+        self.dboxes = nn.Parameter(dboxes(order="xywh").transpose(0, 1).unsqueeze(dim=0), requires_grad=False)
 
         self.confidence_loss = nn.CrossEntropyLoss(reduction='none')
 
@@ -171,7 +178,7 @@ class Loss(nn.Module):
         gwh = self.scale_wh * (loc[:, 2:, :] / self.dboxes[:, 2:, :]).log()  # Nx2x8732
         return torch.cat((gxy, gwh), dim=1).contiguous()
 
-    def forward(self, ploc, plabel, gloc, glabel):
+    def forward(self, ploc, plabel, gloc, glabel):  # 预测的loc和label 以及GTloc和GTlabel
         # type: (Tensor, Tensor, Tensor, Tensor) -> Tensor
         """
             ploc, plabel: Nx4x8732, Nxlabel_numx8732
@@ -222,4 +229,3 @@ class Loss(nn.Module):
         pos_num = pos_num.float().clamp(min=1e-6)  # 防止出现分母为零的情况
         ret = (total_loss * num_mask / pos_num).mean(dim=0)  # 只计算存在正样本的图像损失
         return ret
-

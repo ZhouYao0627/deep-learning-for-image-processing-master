@@ -3,12 +3,12 @@ import datetime
 
 import torch
 
-import transforms
-from network_files import FasterRCNN, FastRCNNPredictor
-from backbone import resnet50_fpn_backbone
-from my_dataset import VOCDataSet
-from train_utils import GroupedBatchSampler, create_aspect_ratio_groups
-from train_utils import train_eval_utils as utils
+from torchvision import transforms
+from pytorch_object_detection.faster_rcnn.network_files import FasterRCNN, FastRCNNPredictor
+from pytorch_object_detection.faster_rcnn.backbone import resnet50_fpn_backbone
+from pytorch_object_detection.faster_rcnn.my_dataset import VOCDataSet
+from pytorch_object_detection.faster_rcnn.train_utils import GroupedBatchSampler, create_aspect_ratio_groups
+from pytorch_object_detection.faster_rcnn.train_utils import train_eval_utils as utils
 
 
 def create_model(num_classes):
@@ -77,14 +77,14 @@ def main(parser_data):
         train_data_loader = torch.utils.data.DataLoader(train_dataset,
                                                         batch_sampler=train_batch_sampler,
                                                         pin_memory=True,
-                                                        num_workers=nw,
+                                                        num_workers=0,
                                                         collate_fn=train_dataset.collate_fn)
     else:
         train_data_loader = torch.utils.data.DataLoader(train_dataset,
                                                         batch_size=batch_size,
                                                         shuffle=True,
                                                         pin_memory=True,
-                                                        num_workers=nw,
+                                                        num_workers=0,
                                                         collate_fn=train_dataset.collate_fn)
 
     # load validation data set
@@ -94,7 +94,7 @@ def main(parser_data):
                                                       batch_size=1,
                                                       shuffle=False,
                                                       pin_memory=True,
-                                                      num_workers=nw,
+                                                      num_workers=0,
                                                       collate_fn=val_dataset.collate_fn)
 
     # create model num_classes equal background + 20 classes
@@ -166,12 +166,12 @@ def main(parser_data):
 
     # plot loss and lr curve
     if len(train_loss) != 0 and len(learning_rate) != 0:
-        from plot_curve import plot_loss_and_lr
+        from pytorch_object_detection.faster_rcnn.plot_curve import plot_loss_and_lr
         plot_loss_and_lr(train_loss, learning_rate)
 
     # plot mAP curve
     if len(val_map) != 0:
-        from plot_curve import plot_map
+        from pytorch_object_detection.faster_rcnn.plot_curve import plot_map
         plot_map(val_map)
 
 
@@ -189,16 +189,14 @@ if __name__ == "__main__":
     parser.add_argument('--num-classes', default=20, type=int, help='num_classes')
     # 文件保存地址
     parser.add_argument('--output-dir', default='./save_weights', help='path where to save')
-    # 若需要接着上次训练，则指定上次训练保存权重文件地址
+    # 若需要接着上次训练，则指定上次训练保存权重文件地址；default默认为空是从0开始一步步训练的，可以指定之前的权重路径它就会读取信息，接着上次继续向后训练
     parser.add_argument('--resume', default='', type=str, help='resume from checkpoint')
-    # 指定接着从哪个epoch数开始训练
+    # 指定接着从哪个epoch数开始训练；默认从0开始训练，若上方指定了权重路径，下方就会自动读取上次训练到了哪个epoch，然后接着之前的epoch开始训练
     parser.add_argument('--start_epoch', default=0, type=int, help='start epoch')
     # 训练的总epoch数
-    parser.add_argument('--epochs', default=15, type=int, metavar='N',
-                        help='number of total epochs to run')
+    parser.add_argument('--epochs', default=15, type=int, metavar='N', help='number of total epochs to run')
     # 训练的batch size
-    parser.add_argument('--batch_size', default=8, type=int, metavar='N',
-                        help='batch size when training.')
+    parser.add_argument('--batch_size', default=8, type=int, metavar='N', help='batch size when training.')
     parser.add_argument('--aspect-ratio-group-factor', default=3, type=int)
     # 是否使用混合精度训练(需要GPU支持混合精度)
     parser.add_argument("--amp", default=False, help="Use torch.cuda.amp for mixed precision training")

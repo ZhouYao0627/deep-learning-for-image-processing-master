@@ -24,8 +24,7 @@ def calculate_data_txt(txt_path, dataset_dir):
             if file_name == "classes.txt":
                 continue
 
-            img_path = os.path.join(dataset_dir.replace("labels", "images"),
-                                    file_name.split(".")[0]) + ".jpg"
+            img_path = os.path.join(dataset_dir.replace("labels", "images"), file_name.split(".")[0]) + ".jpg"
             line = img_path + "\n"
             assert os.path.exists(img_path), "file:{} not exist!".format(img_path)
             w.write(line)
@@ -36,9 +35,9 @@ def create_data_data(create_data_path, label_path, train_path, val_path, classes
     # shutil.copyfile(label_path, "./data/my_data_label.names")
     with open(create_data_path, "w") as w:
         w.write("classes={}".format(len(classes_info)) + "\n")  # 记录类别个数
-        w.write("train={}".format(train_path) + "\n")           # 记录训练集对应txt文件路径
-        w.write("valid={}".format(val_path) + "\n")             # 记录验证集对应txt文件路径
-        w.write("names=data/my_data_label.names" + "\n")        # 记录label.names文件路径
+        w.write("train={}".format(train_path) + "\n")  # 记录训练集对应txt文件路径
+        w.write("valid={}".format(val_path) + "\n")  # 记录验证集对应txt文件路径
+        w.write("names=data/my_data_label.names" + "\n")  # 记录label.names文件路径
 
 
 def change_and_create_cfg_file(classes_info, save_cfg_path="./cfg/my_yolov3.cfg"):
@@ -49,13 +48,13 @@ def change_and_create_cfg_file(classes_info, save_cfg_path="./cfg/my_yolov3.cfg"
     cfg_lines = open(cfg_path, "r").readlines()
 
     for i in filters_lines:
-        assert "filters" in cfg_lines[i-1], "filters param is not in line:{}".format(i-1)
+        assert "filters" in cfg_lines[i - 1], "filters param is not in line:{}".format(i - 1)
         output_num = (5 + len(classes_info)) * 3
-        cfg_lines[i-1] = "filters={}\n".format(output_num)
+        cfg_lines[i - 1] = "filters={}\n".format(output_num)
 
     for i in classes_lines:
-        assert "classes" in cfg_lines[i-1], "classes param is not in line:{}".format(i-1)
-        cfg_lines[i-1] = "classes={}\n".format(len(classes_info))
+        assert "classes" in cfg_lines[i - 1], "classes param is not in line:{}".format(i - 1)
+        cfg_lines[i - 1] = "classes={}\n".format(len(classes_info))
 
     with open(save_cfg_path, "w") as w:
         w.writelines(cfg_lines)

@@ -1,14 +1,17 @@
 import os
 import datetime
-
 import torch
-
 import transforms
-from backbone import resnet50_fpn_backbone, LastLevelP6P7
-from network_files import RetinaNet
-from my_dataset import VOCDataSet
-from train_utils import GroupedBatchSampler, create_aspect_ratio_groups
-from train_utils import train_eval_utils as utils
+# from backbone import resnet50_fpn_backbone, LastLevelP6P7
+# from network_files import RetinaNet
+# from my_dataset import VOCDataSet
+# from train_utils import GroupedBatchSampler, create_aspect_ratio_groups
+# from train_utils import train_eval_utils as utils
+from pytorch_object_detection.retinaNet.backbone import resnet50_fpn_backbone, LastLevelP6P7
+from pytorch_object_detection.retinaNet.network_files import RetinaNet
+from pytorch_object_detection.retinaNet.my_dataset import VOCDataSet
+from pytorch_object_detection.retinaNet.train_utils import GroupedBatchSampler, create_aspect_ratio_groups
+from pytorch_object_detection.retinaNet.train_utils import train_eval_utils as utils
 
 
 def create_model(num_classes):
@@ -42,8 +45,7 @@ def main(parser_data):
     results_file = "results{}.txt".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 
     data_transform = {
-        "train": transforms.Compose([transforms.ToTensor(),
-                                     transforms.RandomHorizontalFlip(0.5)]),
+        "train": transforms.Compose([transforms.ToTensor(), transforms.RandomHorizontalFlip(0.5)]),
         "val": transforms.Compose([transforms.ToTensor()])
     }
 
@@ -164,25 +166,24 @@ def main(parser_data):
 
     # plot loss and lr curve
     if len(train_loss) != 0 and len(learning_rate) != 0:
-        from plot_curve import plot_loss_and_lr
+        from pytorch_object_detection.retinaNet.plot_curve import plot_loss_and_lr
         plot_loss_and_lr(train_loss, learning_rate)
 
     # plot mAP curve
     if len(val_map) != 0:
-        from plot_curve import plot_map
+        from pytorch_object_detection.retinaNet.plot_curve import plot_map
         plot_map(val_map)
 
 
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__)
 
     # 训练设备类型
     parser.add_argument('--device', default='cuda:0', help='device')
     # 训练数据集的根目录(VOCdevkit)
-    parser.add_argument('--data-path', default='/data', help='dataset')
+    parser.add_argument('--data-path', default='./data', help='dataset')
     # 检测目标类别数(不包含背景)
     parser.add_argument('--num-classes', default=20, type=int, help='num_classes')
     # 文件保存地址
@@ -192,11 +193,9 @@ if __name__ == "__main__":
     # 指定接着从哪个epoch数开始训练
     parser.add_argument('--start_epoch', default=0, type=int, help='start epoch')
     # 训练的总epoch数
-    parser.add_argument('--epochs', default=15, type=int, metavar='N',
-                        help='number of total epochs to run')
+    parser.add_argument('--epochs', default=15, type=int, metavar='N', help='number of total epochs to run')
     # 训练的batch size
-    parser.add_argument('--batch_size', default=4, type=int, metavar='N',
-                        help='batch size when training.')
+    parser.add_argument('--batch_size', default=4, type=int, metavar='N', help='batch size when training.')
     parser.add_argument('--aspect-ratio-group-factor', default=3, type=int)
     # 是否使用混合精度训练(需要GPU支持混合精度)
     parser.add_argument("--amp", default=False, help="Use torch.cuda.amp for mixed precision training")

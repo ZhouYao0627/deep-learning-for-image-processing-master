@@ -5,22 +5,31 @@ import json
 from PIL import Image
 from lxml import etree
 
+# import torchvision.ops.poolers  #  为了看FPN里的故事代码（下方解释代码）
+"""
+    LevelMapper函数的作用是获得某个特征区域将会从网络的那一层特征上进行提取，面积越大的目标区往往会在高层进行提取，小目标则在低层卷基层
+    上进行特征提取。本函数的主要目标就是确定某个目标最好从那一层上进行提取。
+    实现FPN论文里的公式
+"""
+
 
 class VOCDataSet(Dataset):
     """读取解析PASCAL VOC2007/2012数据集"""
 
     def __init__(self, voc_root, year="2012", transforms=None, txt_name: str = "train.txt"):
         assert year in ["2007", "2012"], "year must be in ['2007', '2012']"
-        self.root = os.path.join(voc_root, "VOCdevkit", f"VOC{year}")
-        self.img_root = os.path.join(self.root, "JPEGImages")
-        self.annotations_root = os.path.join(self.root, "Annotations")
+        self.root = os.path.join(voc_root, "VOCdevkit", f"VOC{year}")  # /faster_rcnn/VOCdevkit/VOC2012
+        self.img_root = os.path.join(self.root, "JPEGImages")  # 图像根目录
+        self.annotations_root = os.path.join(self.root, "Annotations")  # 标注信息根目录
 
         # read train.txt or val.txt file
         txt_path = os.path.join(self.root, "ImageSets", "Main", txt_name)
         assert os.path.exists(txt_path), "not found {} file.".format(txt_name)
 
-        with open(txt_path) as read:
-            self.xml_list = [os.path.join(self.annotations_root, line.strip() + ".xml")
+        with open(txt_path) as read:  # 相当于根据train.txt文件中的每一行去annotations里找对应的xml文件
+            # Python strip() 方法用于移除字符串头尾指定的字符（默认为空格或换行符）或字符序列。
+            # 注意：该方法只能删除开头或是结尾的字符，不能删除中间部分的字符。
+            self.xml_list = [os.path.join(self.annotations_root, line.strip() + ".xml")  # 若为train.txt的话就有5717个xml
                              for line in read.readlines() if len(line.strip()) > 0]
 
         # check file
@@ -40,7 +49,7 @@ class VOCDataSet(Dataset):
     def __len__(self):
         return len(self.xml_list)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx):  # idx索引值是训练时实例化模型后传给实体的
         # read xml
         xml_path = self.xml_list[idx]
         with open(xml_path) as fid:
@@ -52,8 +61,8 @@ class VOCDataSet(Dataset):
         if image.format != "JPEG":
             raise ValueError("Image '{}' format not JPEG".format(img_path))
 
-        boxes = []
-        labels = []
+        boxes = []  # 存储bounding box信息
+        labels = []  # 存索引值
         iscrowd = []
         assert "object" in data, "{} lack of object information.".format(xml_path)
         for obj in data["object"]:
@@ -66,7 +75,7 @@ class VOCDataSet(Dataset):
             if xmax <= xmin or ymax <= ymin:
                 print("Warning: in '{}' xml, there are some bbox w/h <=0".format(xml_path))
                 continue
-            
+
             boxes.append([xmin, ymin, xmax, ymax])
             labels.append(self.class_dict[obj["name"]])
             if "difficult" in obj:
@@ -109,7 +118,6 @@ class VOCDataSet(Dataset):
         将xml文件解析成字典形式，参考tensorflow的recursive_parse_xml_to_dict
         Args:
             xml: xml tree obtained by parsing XML file contents using lxml.etree
-
         Returns:
             Python dictionary holding XML contents.
         """
@@ -180,8 +188,9 @@ class VOCDataSet(Dataset):
     def collate_fn(batch):
         return tuple(zip(*batch))
 
+# 需把下面解开才能debug __getItem__里的内容
 # import transforms
-# from draw_box_utils import draw_box
+# from pytorch_object_detection.faster_rcnn.draw_box_utils import draw_box
 # from PIL import Image
 # import json
 # import matplotlib.pyplot as plt
@@ -206,8 +215,8 @@ class VOCDataSet(Dataset):
 #
 # # load train data set
 # train_data_set = VOCDataSet(os.getcwd(), "2012", data_transform["train"], "train.txt")
-# print(len(train_data_set))
-# for index in random.sample(range(0, len(train_data_set)), k=5):
+# print(len(train_data_set))  # 5717
+# for index in random.sample(range(0, len(train_data_set)), k=5):  # 随机采样5张图
 #     img, target = train_data_set[index]
 #     img = ts.ToPILImage()(img)
 #     draw_box(img,

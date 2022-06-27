@@ -4,10 +4,10 @@
 """
 import json
 
-from models import *
-from build_utils.datasets import *
-from build_utils.utils import *
-from train_utils import get_coco_api_from_dataset, CocoEvaluator
+from pytorch_object_detection.yolov3_spp.models import *
+from pytorch_object_detection.yolov3_spp.build_utils.datasets import *
+from pytorch_object_detection.yolov3_spp.build_utils.utils import *
+from pytorch_object_detection.yolov3_spp.train_utils import get_coco_api_from_dataset, CocoEvaluator
 
 
 def summarize(self, catId=None):

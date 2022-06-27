@@ -6,39 +6,45 @@ import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 from torch.utils.tensorboard import SummaryWriter
 
-from models import *
-from build_utils.datasets import *
-from build_utils.utils import *
-from train_utils import train_eval_utils as train_util
-from train_utils import get_coco_api_from_dataset
+from pytorch_object_detection.yolov3_spp.build_utils.parse_config import parse_data_cfg
+from pytorch_object_detection.yolov3_spp.models import *
+from pytorch_object_detection.yolov3_spp.build_utils.datasets import *
+from pytorch_object_detection.yolov3_spp.build_utils.utils import *
+from pytorch_object_detection.yolov3_spp.train_utils import train_eval_utils as train_util
+from pytorch_object_detection.yolov3_spp.train_utils import get_coco_api_from_dataset
 
 
 def train(hyp):
     device = torch.device(opt.device if torch.cuda.is_available() else "cpu")
     print("Using {} device training.".format(device.type))
 
+    # 设置保存权重的路径
     wdir = "weights" + os.sep  # weights dir
     best = wdir + "best.pt"
+    # 设置保存results的路径
     results_file = "results{}.txt".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 
+    # ---------------------------------参数设置----------------------------------
     cfg = opt.cfg
     data = opt.data
     epochs = opt.epochs
     batch_size = opt.batch_size
+    # 每训练64张图片才更新一次权重，若batch_size=4则代表迭代16步才更新一次参数  -> 这有助于训练
     accumulate = max(round(64 / batch_size), 1)  # accumulate n times before optimizer update (bs 64)
     weights = opt.weights  # initial training weights
-    imgsz_train = opt.img_size
+    imgsz_train = opt.img_size  # train image sizes
     imgsz_test = opt.img_size  # test image sizes
     multi_scale = opt.multi_scale
 
+    # ---------------------------------多尺度训练----------------------------------
     # Image sizes
     # 图像要设置成32的倍数
-    gs = 32  # (pixels) grid size
-    assert math.fmod(imgsz_test, gs) == 0, "--img-size %g must be a %g-multiple" % (imgsz_test, gs)
+    gs = 32  # (pixels) grid size  即输入的图像尺寸到最小的特征图的尺寸 512->16  模型在正向传播过程中会将图像尺寸缩小到用来的1/32
+    assert math.fmod(imgsz_test, gs) == 0, "--img-size %g must be a %g-multiple" % (imgsz_test, gs)  # 看是否为32的整数倍
     grid_min, grid_max = imgsz_test // gs, imgsz_test // gs
-    if multi_scale:
-        imgsz_min = opt.img_size // 1.5
-        imgsz_max = opt.img_size // 0.667
+    if multi_scale:  # 是否多尺度训练 默认是
+        imgsz_min = opt.img_size // 1.5  # 输入网络的最小尺寸
+        imgsz_max = opt.img_size // 0.667  # 输入网络的最大尺寸
 
         # 将给定的最大，最小输入尺寸向下调整到32的整数倍
         grid_min, grid_max = imgsz_min // gs, imgsz_max // gs
@@ -55,13 +61,16 @@ def train(hyp):
     hyp["cls"] *= nc / 80  # update coco-tuned hyp['cls'] to current dataset
     hyp["obj"] *= imgsz_test / 320
 
-    # Remove previous results
+    # ---------------------------------其他----------------------------------
+    # Remove previous results  移除之前的resutl.txt
     for f in glob.glob(results_file):
         os.remove(f)
 
+    # =================================== step 2/5 模型载入==========================================
     # Initialize model
     model = Darknet(cfg).to(device)
 
+    # ---------------------------------训练参数设置（是否冻结训练）----------------------------------
     # 是否冻结权重，只训练predictor的权重
     if opt.freeze_layers:
         # 索引减一对应的是predictor的索引，YOLOLayer并不是predictor
@@ -86,6 +95,7 @@ def train(hyp):
             for parameter in model.module_list[idx].parameters():
                 parameter.requires_grad_(False)
 
+    # =================================== step 3.1/5 优化器定义==========================================
     # optimizer
     pg = [p for p in model.parameters() if p.requires_grad]
     optimizer = optim.SGD(pg, lr=hyp["lr0"], momentum=hyp["momentum"],
@@ -93,6 +103,7 @@ def train(hyp):
 
     scaler = torch.cuda.amp.GradScaler() if opt.amp else None
 
+    # ---------------------------------载入pt----------------------------------
     start_epoch = 0
     best_map = 0.0
     if weights.endswith(".pt") or weights.endswith(".pth"):
@@ -130,6 +141,7 @@ def train(hyp):
 
         del ckpt
 
+    # =================================== step 3.2/5 优化器学习率设置======================================
     # Scheduler https://arxiv.org/pdf/1812.01187.pdf
     lf = lambda x: ((1 + math.cos(x * math.pi / epochs)) / 2) * (1 - hyp["lrf"]) + hyp["lrf"]  # cosine
     scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
@@ -148,12 +160,13 @@ def train(hyp):
 
     # model.yolo_layers = model.module.yolo_layers
 
+    # ================================ step 1/5 数据处理（数据增强）=====================================
     # dataset
-    # 训练集的图像尺寸指定为multi_scale_range中最大的尺寸
+    # 训练集的图像尺寸指定为multi_scale_range中最大的尺寸（736）  数据增强
     train_dataset = LoadImagesAndLabels(train_path, imgsz_train, batch_size,
                                         augment=True,
                                         hyp=hyp,  # augmentation hyperparameters
-                                        rect=opt.rect,  # rectangular training
+                                        rect=opt.rect,  # rectangular training  一般是在测试时使用
                                         cache_images=opt.cache_images,
                                         single_cls=opt.single_cls)
 
@@ -166,6 +179,7 @@ def train(hyp):
 
     # dataloader
     nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
+    # 这里调用LoadImagesAndLabels.__len__ 将train_dataset按batch_size分成batch份
     train_dataloader = torch.utils.data.DataLoader(train_dataset,
                                                    batch_size=batch_size,
                                                    num_workers=nw,
@@ -180,6 +194,7 @@ def train(hyp):
                                                     pin_memory=True,
                                                     collate_fn=val_dataset.collate_fn)
 
+    # --------------------------------- step 4 损失函数参数 ----------------------------------
     # Model parameters
     model.nc = nc  # attach number of classes to model
     model.hyp = hyp  # attach hyperparameters to model
@@ -187,6 +202,7 @@ def train(hyp):
     # 计算每个类别的目标个数，并计算每个类别的比重
     # model.class_weights = labels_to_class_weights(train_dataset.labels, nc).to(device)  # attach class weights
 
+    # =================================== step 5/5 训练======================================
     # start training
     # caching val_data when you have plenty of memory(RAM)
     # coco = None
@@ -195,25 +211,26 @@ def train(hyp):
     print("starting traning for %g epochs..." % epochs)
     print('Using %g dataloader workers' % nw)
     for epoch in range(start_epoch, epochs):
-        mloss, lr = train_util.train_one_epoch(model, optimizer, train_dataloader,
-                                               device, epoch,
+        # 训练集
+        mloss, lr = train_util.train_one_epoch(model, optimizer, train_dataloader, device, epoch,
                                                accumulate=accumulate,  # 迭代多少batch才训练完64张图片
                                                img_size=imgsz_train,  # 输入图像的大小
-                                               multi_scale=multi_scale,
+                                               multi_scale=multi_scale,  # 是否需要多尺度训练
                                                grid_min=grid_min,  # grid的最小尺寸
                                                grid_max=grid_max,  # grid的最大尺寸
                                                gs=gs,  # grid step: 32
                                                print_freq=50,  # 每训练多少个step打印一次信息
-                                               warmup=True,
+                                               warmup=True,  # 第一个epoch要采用特殊的训练方式 慢慢训练
                                                scaler=scaler)
         # update scheduler
         scheduler.step()
 
+        # 验证集  只测试最后一个epoch  epochs=1,2,3...
         if opt.notest is False or epoch == epochs - 1:
             # evaluate on the test dataset
-            result_info = train_util.evaluate(model, val_datasetloader,
-                                              coco=coco, device=device)
+            result_info = train_util.evaluate(model, val_datasetloader, coco=coco, device=device)
 
+            # --------------------------------- 打印输出 保存模型----------------------------------
             coco_mAP = result_info[0]
             voc_mAP = result_info[1]
             coco_mAR = result_info[8]
@@ -273,19 +290,24 @@ if __name__ == '__main__':
     parser.add_argument('--hyp', type=str, default='cfg/hyp.yaml', help='hyperparameters path')
     parser.add_argument('--multi-scale', type=bool, default=True,
                         help='adjust (67%% - 150%%) img_size every 10 batches')
-    parser.add_argument('--img-size', type=int, default=512, help='test size')
-    parser.add_argument('--rect', action='store_true', help='rectangular training')
-    parser.add_argument('--savebest', type=bool, default=False, help='only save best checkpoint')
+    parser.add_argument('--img-size', type=int, default=512, help='test size')  # 测试时指定大小，训练时不指定图片的大小
+    parser.add_argument('--rect', action='store_true', help='rectangular training')  # 是否采用矩形训练，默认False  数据集部分讲解
+    parser.add_argument('--savebest', type=bool, default=False, help='only save best checkpoint')  # 是否只保存Map最高的那次权重
+    # 若为true，在训练的最后一个epoch验证模型，可以节约一些时间；默认false，即每训练迭代一次，就对它进行一次验证
     parser.add_argument('--notest', action='store_true', help='only test final epoch')
+    # 是否提前缓存图片到内存，以加快训练速度，默认False
     parser.add_argument('--cache-images', action='store_true', help='cache images for faster training')
     parser.add_argument('--weights', type=str, default='weights/yolov3-spp-ultralytics-512.pt',
-                        help='initial weights path')
+                        help='initial weights path')  # 预训练权重，若训练几个epoch之后断开了，想接着训练则将权重改为最后一次保存的权重，就可以接着训练
+    # 数据集名字，如果设置：results.txt to results_name.txt，默认无
     parser.add_argument('--name', default='', help='renames results.txt to results_name.txt if supplied')
     parser.add_argument('--device', default='cuda:0', help='device id (i.e. 0 or 0,1 or cpu)')
+    # 数据集是否只有一个类别，默认False
     parser.add_argument('--single-cls', action='store_true', help='train as single-class dataset')
-    parser.add_argument('--freeze-layers', type=bool, default=False, help='Freeze non-output layers')
+    parser.add_argument('--freeze-layers', type=bool, default=False, help='Freeze non-output layers')  # 是否冻结网络的部分权重
     # 是否使用混合精度训练(需要GPU支持混合精度)
     parser.add_argument("--amp", default=False, help="Use torch.cuda.amp for mixed precision training")
+
     opt = parser.parse_args()
 
     # 检查文件是否存在
@@ -295,7 +317,7 @@ if __name__ == '__main__':
     print(opt)
 
     with open(opt.hyp) as f:
-        hyp = yaml.load(f, Loader=yaml.FullLoader)
+        hyp = yaml.load(f, Loader=yaml.FullLoader)  # 通过load函数将数据转化为列表或字典
 
     print('Start Tensorboard with "tensorboard --logdir=runs", view at http://localhost:6006/')
     tb_writer = SummaryWriter(comment=opt.name)

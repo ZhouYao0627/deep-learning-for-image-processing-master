@@ -4,7 +4,7 @@ import onnx
 import onnxruntime
 import numpy as np
 from matplotlib import pyplot as plt
-from draw_box_utils import draw_box
+from pytorch_object_detection.yolov3_spp.draw_box_utils import draw_box
 
 
 def to_numpy(tensor):
