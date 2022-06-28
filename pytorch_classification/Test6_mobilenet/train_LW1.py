@@ -8,14 +8,14 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from prettytable import PrettyTable
 
-from pytorch_classification.ConfusionMatrix.model import MobileNetV2
+from pytorch_classification.Test6_mobilenet.model_v2 import MobileNetV2
 
 
 class ConfusionMatrix(object):
     """
     注意，如果显示的图像不全，是matplotlib版本问题
     本例程使用matplotlib-3.2.1(windows and ubuntu)绘制正常
-    需要额外安装prettytable库
+    需要额外安装prettytable库  将输出打印为列表
     """
 
     def __init__(self, num_classes: int, labels: list):
@@ -24,7 +24,7 @@ class ConfusionMatrix(object):
         self.labels = labels
 
     def update(self, preds, labels):
-        for p, t in zip(preds, labels):
+        for p, t in zip(preds, labels):  # p: predict, t: GT
             self.matrix[p, t] += 1
 
     def summary(self):
@@ -36,9 +36,9 @@ class ConfusionMatrix(object):
         print("the model accuracy is ", acc)
 
         # precision, recall, specificity
-        table = PrettyTable()
+        table = PrettyTable()  # init a table for print
         table.field_names = ["", "Precision", "Recall", "Specificity"]
-        for i in range(self.num_classes):
+        for i in range(self.num_classes):  # for each class
             TP = self.matrix[i, i]
             FP = np.sum(self.matrix[i, :]) - TP
             FN = np.sum(self.matrix[:, i]) - TP
@@ -49,23 +49,25 @@ class ConfusionMatrix(object):
             table.add_row([self.labels[i], Precision, Recall, Specificity])
         print(table)
 
-    def plot(self):
+    def plot(self):  # plot confusion matrix
         matrix = self.matrix
         print(matrix)
-        plt.imshow(matrix, cmap=plt.cm.Blues)
+        plt.imshow(matrix, cmap=plt.cm.Blues)  # color from white to blue
 
-        # 设置x轴坐标label
         plt.xticks(range(self.num_classes), self.labels, rotation=45)
-        # 设置y轴坐标label
         plt.yticks(range(self.num_classes), self.labels)
-        # 显示colorbar
+
+        # show colorbar
         plt.colorbar()
+
         plt.xlabel('True Labels')
         plt.ylabel('Predicted Labels')
         plt.title('Confusion matrix')
 
         # 在图中标注数量/概率信息
         thresh = matrix.max() / 2
+        # Note:
+        #       x: left -> right; y: top -> bottom
         for x in range(self.num_classes):
             for y in range(self.num_classes):
                 # 注意这里的matrix[y, x]不是matrix[x, y]
@@ -100,7 +102,7 @@ if __name__ == '__main__':
                                                   num_workers=2)
     net = MobileNetV2(num_classes=5)
     # load pretrain weights
-    model_weight_path = "MobileNetV2_flower.pth"
+    model_weight_path = "./mobilenet_v2.pth"
     assert os.path.exists(model_weight_path), "cannot find {} file".format(model_weight_path)
     net.load_state_dict(torch.load(model_weight_path, map_location=device))
     net.to(device)
