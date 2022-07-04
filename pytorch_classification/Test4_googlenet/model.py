@@ -104,6 +104,7 @@ class GoogLeNet(nn.Module):
 
 
 class Inception(nn.Module):
+    # self.inception3a = Inception(192, 64, 96, 128, 16, 32, 32)
     def __init__(self, in_channels, ch1x1, ch3x3red, ch3x3, ch5x5red, ch5x5, pool_proj):
         super(Inception, self).__init__()
 
