@@ -39,7 +39,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix'
     plt.tight_layout()
     plt.xlabel('Predicted label')
     plt.ylabel('True label')
-    plt.savefig("../plot/AID30_5050_resnext_101_1.png", dpi=500, format="png", bbox_inches='tight')
+    # plt.savefig("../plot/AID30_5050_resnext_101_1.png", dpi=500, format="png", bbox_inches='tight')
     plt.show()
 
 
@@ -193,6 +193,7 @@ cnf_matrix = np.array([[0.95027624, 0.00552486, 0., 0., 0., 0.,
                         0., 0., 0., 0., 0., 0.0046729,
                         0., 0., 0., 0.0046729, 0., 0.,
                         0., 0., 0.00934579, 0., 0., 0.97196262]])
+# print(cnf_matrix.shape)
 attack_types = ['Airport', 'BareLand', 'BaseballField', 'Beach', 'Bridge', 'Center', 'Church', 'Commercial',
                 'DenseResidential', 'Desert', 'Farmland', 'Forest', 'Industrial', 'Meadow', 'MediumResidential',
                 'Mountain', 'Park', 'Parking', 'Playground', 'Pond', 'Port',

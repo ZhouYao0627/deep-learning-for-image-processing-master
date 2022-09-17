@@ -10,7 +10,7 @@ from tqdm import tqdm
 from model_resnet import resnext101_32x8d
 
 
-# best:
+# best_acc
 def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print("using {} device.".format(device))
@@ -26,7 +26,7 @@ def main():
                                    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])}
 
     data_root = os.path.abspath(os.path.join(os.getcwd(), "../"))  # get data root path
-    image_path = os.path.join(data_root, "data_set", "NWPU45", "50_50")  # flower data set path
+    image_path = os.path.join(data_root, "data_set", "NWPU45", "20_80")  # flower data set path
     assert os.path.exists(image_path), "{} path does not exist.".format(image_path)
     train_dataset = datasets.ImageFolder(root=os.path.join(image_path, "train"), transform=data_transform["train"])
     train_num = len(train_dataset)  # 3306
@@ -80,7 +80,7 @@ def main():
 
     epochs = 100  # 原来是3
     best_acc = 0.0
-    save_path = './save_weights/train_NWPU45_5050.pth'
+    save_path = './save_weights/train_NWPU45_2080.pth'
     train_steps = len(train_loader)
     for epoch in range(epochs):
         # train
@@ -128,14 +128,14 @@ def main():
             best_acc = val_accurate
             torch.save(net.state_dict(), save_path)
 
-        with open('./Draw/train_accurate_NWPU45_5050.txt', 'a+') as f:
+        with open('./Draw/train_accurate_NWPU45_2080.txt', 'a+') as f:
             f.write(str(train_accurate) + ',')
 
-        with open('./Draw/val_accurate_NWPU45_5050.txt', 'a+') as f:
+        with open('./Draw/val_accurate_NWPU45_2080.txt', 'a+') as f:
             f.write(str(val_accurate) + ',')
 
         train_loss1 = running_loss / train_steps
-        with open('./Draw/train_loss_NWPU45_5050.txt', 'a+') as f:
+        with open('./Draw/train_loss_NWPU45_2080.txt', 'a+') as f:
             f.write(str(train_loss1) + ',')
 
     print("best_acc", best_acc)
