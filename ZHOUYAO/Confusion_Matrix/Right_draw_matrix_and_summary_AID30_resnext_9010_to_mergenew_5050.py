@@ -13,7 +13,7 @@ from model_resnet import resnext101_32x8d
 import seaborn as sns
 import itertools
 
-
+# best: 0.976
 class ConfusionMatrix(object):
     """
     注意，如果显示的图像不全，是matplotlib版本问题
@@ -74,7 +74,7 @@ class ConfusionMatrix(object):
         print("Normalized confusion matrix")
         print("matrix", matrix)
 
-        with open('./plot/NWPU45_5050_matrix.txt', 'a+') as f:
+        with open('./plot/AID30_resnext_9010_to_mergenew_5050_matrix1.txt', 'a+') as f:
             f.write(str(matrix))
 
         # 在图中标注数量/概率信息

@@ -74,7 +74,7 @@ class ConfusionMatrix(object):
         print("Normalized confusion matrix")
         print("matrix", matrix)
 
-        with open('./plot/NWPU45_5050_matrix.txt', 'a+') as f:
+        with open('./plot/NWPU45_resnext_5050_to_mergenew_2080_matrix1.txt', 'a+') as f:
             f.write(str(matrix))
 
         # 在图中标注数量/概率信息
