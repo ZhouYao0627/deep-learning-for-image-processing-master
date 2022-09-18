@@ -9,7 +9,7 @@ from torchvision import transforms, datasets
 from tqdm import tqdm
 from model_resnet import resnext101_32x8d
 
-# 0.976
+# best: 0.976
 def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print("using {} device.".format(device))

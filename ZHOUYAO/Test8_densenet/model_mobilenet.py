@@ -60,7 +60,7 @@ class MobileNetV2(nn.Module):
         super(MobileNetV2, self).__init__()
         block = InvertedResidual
         input_channel = _make_divisible(32 * alpha, round_nearest)
-        last_channel = _make_divisible(320 * alpha, round_nearest)
+        last_channel = _make_divisible(1280 * alpha, round_nearest)
 
         inverted_residual_setting = [
             # t, c, n, s
@@ -83,23 +83,17 @@ class MobileNetV2(nn.Module):
                 stride = s if i == 0 else 1
                 features.append(block(input_channel, output_channel, stride, expand_ratio=t))
                 input_channel = output_channel
-
+        # building last several layers
+        features.append(ConvBNReLU(input_channel, last_channel, 1))
+        # combine feature layers
         self.features = nn.Sequential(*features)
 
-        # 这是最后三层的卷积，池化和分类
-        # # building last several layers
-        # features.append(ConvBNReLU(input_channel, last_channel, 1))
-        # # combine feature layers
-        # self.features = nn.Sequential(*features)
-        #
-        # # building classifier
-        # self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        # self.classifier = nn.Sequential(
-        #     nn.Dropout(0.2),
-        #     nn.Linear(last_channel, num_classes)
-        # )
-
-        self.fc = torch.nn.Linear(320 ** 2, 19)
+        # building classifier
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.classifier = nn.Sequential(
+            nn.Dropout(0.2),
+            nn.Linear(last_channel, num_classes)
+        )
 
         # weight initialization
         for m in self.modules():
@@ -115,18 +109,8 @@ class MobileNetV2(nn.Module):
                 nn.init.zeros_(m.bias)
 
     def forward(self, x):
-        N = x.size()[0]  # N理论上为16
-        x = self.features(x)  # 理论上来说，这里的特征
-
-        x = x.view(N, 320, 7 ** 2)
-        x = torch.bmm(x, torch.transpose(x, 1, 2)) / (7 ** 2)  # Bilinear
-        x = x.view(N, 320 ** 2)
-
-        x = torch.sqrt(x + 1e-5)
-        x = torch.nn.functional.normalize(x)
-
-        # x = self.avgpool(x)
-        # x = torch.flatten(x, 1)
-        # x = self.classifier(x)
-        x = self.fc(x)
+        x = self.features(x)
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        x = self.classifier(x)
         return x
