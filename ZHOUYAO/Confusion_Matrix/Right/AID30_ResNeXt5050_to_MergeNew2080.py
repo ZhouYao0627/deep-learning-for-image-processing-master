@@ -4,6 +4,7 @@ import itertools
 import seaborn as sns
 
 
+# best_acc 0.9546
 # 绘制混淆矩阵
 def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):
     """
@@ -33,13 +34,14 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix'
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         plt.text(j, i, format(cm[i, j], fmt),
-                 horizontalalignment="center",
+                 verticalalignment='center',
+                 horizontalalignment='center',
                  color="white" if cm[i, j] > thresh else "black")
     plt.gcf().subplots_adjust(bottom=0.3)
     plt.tight_layout()
     plt.xlabel('Predicted label')
     plt.ylabel('True label')
-    # plt.savefig("../plot/AID30_5050_resnext_101_1.png", dpi=500, format="png", bbox_inches='tight')
+    plt.savefig("../plot/AID30_resnext_5050_to_mergenew_2080_Fig1.png", dpi=500, format="png", bbox_inches='tight')
     plt.show()
 
 

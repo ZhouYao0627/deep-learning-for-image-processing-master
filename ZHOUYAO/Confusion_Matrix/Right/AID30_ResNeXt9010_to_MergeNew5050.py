@@ -4,6 +4,7 @@ import itertools
 import seaborn as sns
 
 
+# best: 0.976
 # 绘制混淆矩阵
 def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):
     """
@@ -33,13 +34,14 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix'
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         plt.text(j, i, format(cm[i, j], fmt),
-                 horizontalalignment="center",
+                 verticalalignment='center',
+                 horizontalalignment='center',
                  color="white" if cm[i, j] > thresh else "black")
     plt.gcf().subplots_adjust(bottom=0.3)
     plt.tight_layout()
     plt.xlabel('Predicted label')
     plt.ylabel('True label')
-    plt.savefig("./plot/AID30_9010_resnext_101_22.png", dpi=500, format="png", bbox_inches='tight')
+    plt.savefig("../plot/AID30_resnext_9010_to_mergenew_5050_Fig1.png", dpi=500, format="png", bbox_inches='tight')
     plt.show()
 
 
@@ -195,8 +197,7 @@ cnf_matrix = np.array([[0.94594595, 0.02702703, 0., 0., 0., 0.02702703,
                         0., 0., 0., 0., 0., 1.]])
 attack_types = ['Airport', 'BareLand', 'BaseballField', 'Beach', 'Bridge', 'Center', 'Church', 'Commercial',
                 'DenseResidential', 'Desert', 'Farmland', 'Forest', 'Industrial', 'Meadow', 'MediumResidential',
-                'Mountain', 'Park', 'Parking', 'Playground', 'Pond', 'Port',
-                'RailwayStation', 'Resort', 'River', 'School', 'SparseResidential', 'Square', 'Stadium', 'StorageTanks',
-                'Viaduct']
+                'Mountain', 'Park', 'Parking', 'Playground', 'Pond', 'Port', 'RailwayStation', 'Resort', 'River',
+                'School', 'SparseResidential', 'Square', 'Stadium', 'StorageTanks', 'Viaduct']
 
 plot_confusion_matrix(cnf_matrix, classes=attack_types, normalize=True, title='Confusion Matrix')
