@@ -3,20 +3,22 @@ import numpy as np
 import torch
 from PIL import Image
 import matplotlib.pyplot as plt
+import pylab
 from torchvision import transforms
 from utils import GradCAM, show_cam_on_image
 from model_resnet import resnext101_32x8d
 
-# best: 1.0
+
+# best:
 def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # create model
-    model = resnext101_32x8d(num_classes=21).to(device)
+    model = resnext101_32x8d(num_classes=45).to(device)
     target_layers = [model.layer4[-1]]
 
     # load model weights
-    weights_path = "../Test8_densenet/save_weights/train_UCM21_9010.pth"
+    weights_path = "../Test8_densenet/save_weights/train_NWPU45_8020.pth"
     assert os.path.exists(weights_path), "file: '{}' dose not exist.".format(weights_path)
     model.load_state_dict(torch.load(weights_path, map_location=device))
 
@@ -25,7 +27,7 @@ def main():
 
     # load image
     data_root = os.path.abspath(os.path.join(os.getcwd(), "../"))
-    img_path = os.path.join(data_root, "data_set", "UCM21", "50_50", "train", "overpass", "overpass00.tif")
+    img_path = os.path.join(data_root, "data_set", "NWPU45", "80_20", "train", "airplane", "airplane_061.jpg")
     assert os.path.exists(img_path), "file: '{}' dose not exist.".format(img_path)
     img = Image.open(img_path).convert('RGB')
     img = np.array(img, dtype=np.uint8)
@@ -44,8 +46,9 @@ def main():
     visualization = show_cam_on_image(img.astype(dtype=np.float32) / 255., grayscale_cam, use_rgb=True)
     plt.imshow(visualization)
     plt.colorbar()  # 显示colorbar
-    # plt.savefig("./plot/GradCAM_UCM21_overpass00.png", dpi=500, format="png")
+    plt.savefig("./plot/GradCAM_NWPU45_airplane_061.png", dpi=500, format="png")
     plt.show()
+    # pylab.show()
 
 
 if __name__ == '__main__':
