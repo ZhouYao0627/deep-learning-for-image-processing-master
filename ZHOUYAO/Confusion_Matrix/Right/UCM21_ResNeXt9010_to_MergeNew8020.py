@@ -4,7 +4,7 @@ import itertools
 import seaborn as sns
 
 
-# best: 1.0 -> 99.67%
+# best: 1.0 -> 99.87%
 
 # 绘制混淆矩阵
 def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):

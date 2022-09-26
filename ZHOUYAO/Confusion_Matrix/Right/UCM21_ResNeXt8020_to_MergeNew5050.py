@@ -4,6 +4,7 @@ import itertools
 import seaborn as sns
 
 
+# 0.9904761904761905
 # 绘制混淆矩阵
 def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):
     """
@@ -39,7 +40,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix'
     plt.tight_layout()
     plt.xlabel('Predicted label')
     plt.ylabel('True label')
-    plt.savefig("../plot/UCM21_8020_resnext_101_1.png", dpi=500, format="png", bbox_inches='tight')
+    plt.savefig("../plot/UCM21_resnext_8020_to_mergenew_5050_Fig1.png", dpi=500, format="png", bbox_inches='tight')
     plt.show()
 
 

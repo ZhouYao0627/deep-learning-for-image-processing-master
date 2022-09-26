@@ -6,6 +6,7 @@ import seaborn as sns
 np.set_printoptions(threshold=np.inf)
 
 
+# best_acc 0.9441269841269841
 # 绘制混淆矩阵
 def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):
     """
@@ -46,7 +47,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix'
     plt.show()
 
 
-cnf_matrix = np.array([[0.97707736, 0.0286533, 0., 0.00286533, 0., 0.,
+cnf_matrix = np.array([[0.97707736, 0.00286533, 0., 0.00286533, 0., 0.,
                         0., 0., 0.00286533, 0., 0., 0.,
                         0., 0., 0., 0., 0., 0.,
                         0.00286533, 0., 0., 0., 0., 0.,
