@@ -13,8 +13,130 @@ from model_resnet import resnet50, resnext50_32x4d, resnext101_32x8d, resnet101
 from model_densenet import densenet121, load_state_dict1, densenet161, densenet201
 from CSAM_before_than_cat1 import csam as csam1
 from CSAM_before_than_cat2 import csam as csam2
-from CSAM_later_than_cat import csam
-from SE import se_block
+
+
+class mergeblock(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.conv1 = nn.Sequential(nn.Conv2d(2, 1, kernel_size=(1, 1), stride=(1, 1), padding=0))
+        self.conv2 = nn.Sequential(nn.Conv2d(2, 1, kernel_size=(1, 1), stride=(1, 1), padding=0))
+        # channel attention 压缩H,W为1
+        self.max_pool = nn.AdaptiveMaxPool2d(1)
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.sigmoid = nn.Sigmoid()
+
+        # R-D
+        self.conv1_1_dw = nn.Sequential(
+            nn.Conv2d(in_channels=2048, out_channels=2048, kernel_size=3, stride=1, padding=1, groups=2048, bias=False),
+            nn.ReLU(),
+            nn.BatchNorm2d(2048),
+        )
+        self.conv1_1_pw = nn.Sequential(
+            nn.Conv2d(in_channels=2048, out_channels=2048, kernel_size=1, stride=1, padding=0, groups=1, bias=False),
+            nn.ReLU(),
+            nn.BatchNorm2d(2048),
+        )
+        # self.conv1_2_dw = nn.Sequential(
+        #     nn.Conv2d(in_channels=2048, out_channels=2048, kernel_size=3, stride=1, padding=1, groups=2048, bias=False),
+        #     nn.ReLU(),
+        #     nn.BatchNorm2d(2048),
+        # )
+        # self.conv1_2_pw = nn.Sequential(
+        #     nn.Conv2d(in_channels=2048, out_channels=2048, kernel_size=1, stride=1, padding=0, groups=1, bias=False),
+        #     nn.ReLU(),
+        #     nn.BatchNorm2d(2048),
+        # )
+        # R-D
+        self.conv2_1_dw = nn.Sequential(
+            nn.Conv2d(in_channels=2208, out_channels=2208, kernel_size=3, stride=1, padding=1, groups=2208, bias=False),
+            nn.ReLU(),
+            nn.BatchNorm2d(2208),
+        )
+        self.conv2_1_pw = nn.Sequential(
+            nn.Conv2d(in_channels=2208, out_channels=2208, kernel_size=1, stride=1, padding=0, groups=1, bias=False),
+            nn.ReLU(),
+            nn.BatchNorm2d(2208),
+        )
+        # self.conv2_2_dw = nn.Sequential(
+        #     nn.Conv2d(in_channels=2208, out_channels=2208, kernel_size=3, stride=1, padding=1, groups=2208, bias=False),
+        #     nn.ReLU(),
+        #     nn.BatchNorm2d(2208),
+        # )
+        # self.conv2_2_pw = nn.Sequential(
+        #     nn.Conv2d(in_channels=2208, out_channels=2208, kernel_size=1, stride=1, padding=0, groups=1, bias=False),
+        #     nn.ReLU(),
+        #     nn.BatchNorm2d(2208),
+        # )
+
+        # 修改通道数
+        self.conv_1 = nn.Conv2d(in_channels=4256, out_channels=2048, kernel_size=1, stride=1, padding=0, bias=False)
+        self.conv_2 = nn.Conv2d(in_channels=4256, out_channels=2208, kernel_size=1, stride=1, padding=0, bias=False)
+
+    def forward(self, InData1, InData2):
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.conv1 = self.conv1.to(device)
+        self.conv2 = self.conv2.to(device)
+        self.max_pool = self.max_pool.to(device)
+        self.avg_pool = self.avg_pool.to(device)
+        self.sigmoid = self.sigmoid.to(device)
+        self.conv1_1_dw = self.conv1_1_dw.to(device)
+        self.conv1_1_pw = self.conv1_1_pw.to(device)
+        self.conv2_1_dw = self.conv2_1_dw.to(device)
+        self.conv2_1_pw = self.conv2_1_pw.to(device)
+        self.conv_1 = self.conv_1.to(device)
+        self.conv_2 = self.conv_2.to(device)
+
+        # 第一阶段
+        max_out1 = self.max_pool(InData1)
+        avg_out1 = self.avg_pool(InData2)
+        sig1 = self.sigmoid(max_out1)
+        sig2 = self.sigmoid(avg_out1)
+        fea1 = InData1 * sig1
+        fea2 = InData2 * sig2
+        # print(fea1.shape,fea2.shape)
+
+        # 第二阶段
+        # max_out2, _ = torch.max(fea1, dim=1, keepdim=True)
+        # avg_out2 = torch.mean(fea1, dim=1, keepdim=True)
+        # am1 = self.conv1(torch.cat([max_out2, avg_out2], dim=1))
+        #
+        # max_out3, _ = torch.max(fea2, dim=1, keepdim=True)
+        # avg_out3 = torch.mean(fea2, dim=1, keepdim=True)
+        # am2 = self.conv2(torch.cat([max_out3, avg_out3], dim=1))
+        #
+        # sig3 = self.sigmoid(am1)
+        # sig4 = self.sigmoid(am2)
+        # # print('123131321',am1.shape,fea1.shape,sig3.shape)
+        # fea3 = fea1 * sig3
+        # fea4 = fea2 * sig4
+        # result = torch.cat([fea3, fea4], dim=1)
+        # print()
+        # 第二阶段-> R-D
+        x1 = fea1
+        x2 = fea2
+        x1 = self.conv1_1_dw(x1)
+        x1 = self.conv1_1_pw(x1)
+        x2 = self.conv2_1_dw(x2)
+        x2 = self.conv2_1_pw(x2)
+        x3 = torch.cat((x1, x2), dim=1)  # 7*7*4256
+        x3 = self.conv_1(x3)  # 7*7*2048
+        x4 = torch.add(fea1, x3)
+
+        # 第二阶段-> D-R
+        y1 = fea1
+        y2 = fea2
+        y1 = self.conv1_1_dw(y1)
+        y1 = self.conv1_1_pw(y1)
+        y2 = self.conv2_1_dw(y2)
+        y2 = self.conv2_1_pw(y2)
+        y3 = torch.cat((y1, y2), dim=1)  # 7*7*4256
+        y3 = self.conv_2(y3)  # 7*7*2208
+        y4 = torch.add(fea2, y3)
+
+        result = torch.cat((x4, y4), dim=1)
+
+        return result
 
 
 class EF(nn.Module):
@@ -24,59 +146,61 @@ class EF(nn.Module):
         self.net1 = net1
         self.net2 = net2
 
-        # self.cbam1 = cbam(2048)
-        # self.cbam2 = cbam(2208)
-        # self.se_block1 = se_block(2048)
-        # self.se_block2 = se_block(2208)
-
         self.csam1 = csam1(2048)
         self.csam2 = csam2(2208)
 
-        # self.cbam = cbam(4256)
-        # self.csam = csam(4256)
-        # self.se_block = se_block(4256)
-
-        # 修改通道数
-        self.conv_1x1 = nn.Conv2d(in_channels=4256, out_channels=1024, kernel_size=1, padding=0, bias=False)
+        # 3x3卷积
+        self.conv_3x3_1 = nn.Conv2d(in_channels=4256, out_channels=1024, kernel_size=3, stride=1, padding=1, bias=False)
+        self.bn = nn.BatchNorm2d(1024)
 
         self.avgpool = nn.Sequential(nn.AdaptiveAvgPool2d((1, 1)))
         self.dropout = nn.Dropout(0.5)
         self.fc = nn.Sequential(nn.Linear(1024, 21))
 
     def forward(self, input):
-        f1 = self.net1(input)  # resNext101: [128, 2048, 7, 7]
-        f2 = self.net2(input)  # densenet161: [128, 2208, 7, 7]
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        input = input.to(device)
+        self.net1 = self.net1.to(device)
+        self.net2 = self.net2.to(device)
+        self.csam1 = self.csam1.to(device)
+        self.csam2 = self.csam2.to(device)
+        self.avgpool = self.avgpool.to(device)
+        self.dropout = self.dropout.to(device)
+        self.fc = self.fc.to(device)
+        self.conv_3x3_1 = self.conv_3x3_1.to(device)
+        self.bn = self.bn.to(device)
 
-        # f1 = self.cbam1(f1)
-        # f2 = self.cbam2(f2)
-        # f1 = self.se_block1(f1)
-        # f2 = self.se_block2(f2)
+        f1 = self.net1(input)  # resNext101: [128, 2048, 7, 7]
+        f2 = self.net2(input)  # densenet161: [128, 2208, 7, 7]  densenet121: [128, 1024, 7, 7]
+
         f1 = self.csam1(f1)
         f2 = self.csam2(f2)
 
-        # 4-5dropout
-        # f1 = self.dropout(f1)
-        # f2 = self.dropout(f2)
+        net = mergeblock()
+        x = net.forward(f1, f2)  # 7*7*4256
 
-        x = torch.cat([f1, f2], dim=1)
+        x = self.conv_3x3_1(x)
+        x = self.bn(x)
 
-        # 修改通道数
-        x = self.conv_1x1(x)
-
-        # x = self.csam(x)
-        # x = self.cbam(x)
-        # x = self.se_block(x)
-        x = self.dropout(x)  # 2dropout  效果比1dropout好
+        # x = self.dropout(x)  # 2dropout  效果比1dropout好
         x = self.avgpool(x)
-        # x = self.dropout(x)  # 3dropout  效果比1dropout好，比2dropout差
         x = torch.flatten(x, 1)
-        x = self.dropout(x)  # 1dropout
+        # x = self.dropout(x)  # 1dropout
         x = self.fc(x)
         return x
 
 
+# UCM21_80_20_无dropout: best_acc: 0.9738095238095238
+# UCM21_80_20_1dropout: best_acc: 0.969047619047619
+# UCM21_80_20_2dropout: best_acc: 0.9761904761904762
+
+# UCM21_90_10_无dropout: best_acc: 0.9904761904761905
+# UCM21_90_10_2dropout: best_acc: 0.9857142857142858
+
+# UCM21_95_5_0dropout: best_acc: 0.9904761904761905
+# UCM21_95_5_2dropout: best_acc: 0.9904761904761905
 def main(args):
-    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print("using {} device.".format(device))
 
     data_transform = {
@@ -128,12 +252,11 @@ def main(args):
         assert os.path.exists(args.weights), "weights file: '{}' not exist.".format(args.weights)
         weights_dict = torch.load(args.weights, map_location="cpu")
         # 删除有关分类类别的权重
-        print(weights_dict.keys())
-
+        # print(weights_dict.keys())
         for k in list(weights_dict.keys()):
             if "fc.weight" in k or "fc.bias" in k:
                 del weights_dict[k]
-        print("----", net1.load_state_dict(weights_dict, strict=False))
+        print("successfully load pretrain-weights1", net1.load_state_dict(weights_dict, strict=False))
 
     # 是否冻结权重
     for name, para in net1.named_parameters():
@@ -155,7 +278,7 @@ def main(args):
     net.to(device)
 
     # define loss function
-    loss_function = nn.CrossEntropyLoss()
+    loss_function1 = nn.CrossEntropyLoss()
 
     # construct an optimizer
     params = [p for p in net.parameters() if p.requires_grad]
@@ -166,7 +289,7 @@ def main(args):
 
     epochs = 100
     best_acc = 0.0
-    save_path = './D_R_cat_twocsam_drop05_2_UCM21_8020_c1024.pth'
+    save_path = './save_weights/D_R_UCM21_95_5_Merge_0dropout_csam.pth'
     train_steps = len(train_loader)
     for epoch in range(epochs):
         # train
@@ -178,7 +301,7 @@ def main(args):
             images, labels = data
             optimizer.zero_grad()
             logits = net(images.to(device))
-            loss = loss_function(logits, labels.to(device))
+            loss = loss_function1(logits, labels.to(device))
             loss.backward()
             optimizer.step()
             # CosineLR.step()
@@ -217,15 +340,15 @@ def main(args):
             best_acc = val_accurate
             torch.save(net.state_dict(), save_path)
 
-        with open('./Draw/train_accurate_D_R_cat_twocsam_UCM21_8020_c1024.txt', 'a+') as f:
-            f.write(str(train_accurate) + ',')
-
-        with open('./Draw/val_accurate_D_R_cat_twocsam_UCM21_8020_c1024.txt', 'a+') as f:
-            f.write(str(val_accurate) + ',')
-
-        train_loss1 = running_loss / train_steps
-        with open('./Draw/train_loss_D_R_cat_twocsam_UCM21_8020_c1024.txt', 'a+') as f:
-            f.write(str(train_loss1) + ',')
+        # with open('./Draw/train_accurate_UCM21_95_5_Merge_dropout.txt', 'a+') as f:
+        #     f.write(str(train_accurate) + ',')
+        #
+        # with open('./Draw/val_accurate_UCM21_95_5_Merge_dropout.txt', 'a+') as f:
+        #     f.write(str(val_accurate) + ',')
+        #
+        # train_loss1 = running_loss / train_steps
+        # with open('./Draw/train_loss_UCM21_95_5_Merge_dropout.txt', 'a+') as f:
+        #     f.write(str(train_loss1) + ',')
 
     print("best_acc", best_acc)
     print('Finished Training')
