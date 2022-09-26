@@ -74,7 +74,7 @@ class ConfusionMatrix(object):
         print("Normalized confusion matrix")
         print("matrix", matrix)
 
-        with open('./plot/NWPU45_resnext_5050_to_mergenew_2080_matrix1.txt', 'a+') as f:
+        with open('./plot/NWPU45_resnext_8020_to_mergenew_2080_matrix1.txt', 'a+') as f:
             f.write(str(matrix))
 
         # 在图中标注数量/概率信息
@@ -98,7 +98,7 @@ class ConfusionMatrix(object):
         # plt.savefig("./plot/AID30_9010_resnext_101_10.svg", dpi=300, format="svg")
         plt.show()
 
-
+# best_acc: 0.9561904761904761
 if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print(device)
@@ -109,7 +109,7 @@ if __name__ == '__main__':
                                          transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
     data_root = os.path.abspath(os.path.join(os.getcwd(), "../"))  # get data root path
-    image_path = os.path.join(data_root, "data_set", "NWPU45", "50_50")  # flower data set path
+    image_path = os.path.join(data_root, "data_set", "NWPU45", "80_20")  # flower data set path
     assert os.path.exists(image_path), "data path {} does not exist.".format(image_path)
 
     validate_dataset = datasets.ImageFolder(root=os.path.join(image_path, "val"),
@@ -121,7 +121,7 @@ if __name__ == '__main__':
                                                   num_workers=2)
     net = resnext101_32x8d(num_classes=45)
     # load pretrain weights
-    model_weight_path = "../Test8_densenet/save_weights/train_NWPU45_5050.pth"
+    model_weight_path = "../Test8_densenet/save_weights/train_NWPU45_8020.pth"
     assert os.path.exists(model_weight_path), "cannot find {} file".format(model_weight_path)
     net.load_state_dict(torch.load(model_weight_path, map_location=device))
     net.to(device)
