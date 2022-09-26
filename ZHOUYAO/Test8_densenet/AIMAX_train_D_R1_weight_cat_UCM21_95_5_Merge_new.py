@@ -289,7 +289,7 @@ def main(args):
 
     epochs = 100
     best_acc = 0.0
-    save_path = './save_weights/D_R_UCM21_95_5_Merge_0dropout.pth'
+    save_path = './save_weights/D_R_UCM21_95_5_Merge_0dropout_nothing.pth'
     train_steps = len(train_loader)
     for epoch in range(epochs):
         # train
@@ -340,15 +340,15 @@ def main(args):
             best_acc = val_accurate
             torch.save(net.state_dict(), save_path)
 
-        with open('./Draw/train_accurate_UCM21_95_5_Merge_dropout.txt', 'a+') as f:
-            f.write(str(train_accurate) + ',')
-
-        with open('./Draw/val_accurate_UCM21_95_5_Merge_dropout.txt', 'a+') as f:
-            f.write(str(val_accurate) + ',')
-
-        train_loss1 = running_loss / train_steps
-        with open('./Draw/train_loss_UCM21_95_5_Merge_dropout.txt', 'a+') as f:
-            f.write(str(train_loss1) + ',')
+        # with open('./Draw/train_accurate_UCM21_95_5_Merge_dropout.txt', 'a+') as f:
+        #     f.write(str(train_accurate) + ',')
+        #
+        # with open('./Draw/val_accurate_UCM21_95_5_Merge_dropout.txt', 'a+') as f:
+        #     f.write(str(val_accurate) + ',')
+        #
+        # train_loss1 = running_loss / train_steps
+        # with open('./Draw/train_loss_UCM21_95_5_Merge_dropout.txt', 'a+') as f:
+        #     f.write(str(train_loss1) + ',')
 
     print("best_acc", best_acc)
     print('Finished Training')
