@@ -10,7 +10,7 @@ from tqdm import tqdm
 from model_resnet import resnext101_32x8d
 
 
-# best_acc 0.9441269841269841
+# best_acc 0.9441269841269841 -> 94.14
 def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print("using {} device.".format(device))

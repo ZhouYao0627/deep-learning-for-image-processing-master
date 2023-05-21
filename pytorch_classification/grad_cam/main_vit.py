@@ -4,8 +4,8 @@ import torch
 from PIL import Image
 import matplotlib.pyplot as plt
 from torchvision import transforms
-from utils import GradCAM, show_cam_on_image, center_crop_img
-from vit_model import vit_base_patch16_224
+from pytorch_classification.grad_cam.utils import GradCAM, show_cam_on_image, center_crop_img
+from pytorch_classification.grad_cam.vit_model import vit_base_patch16_224_in21k
 
 
 class ReshapeTransform:
@@ -29,7 +29,7 @@ class ReshapeTransform:
 
 
 def main():
-    model = vit_base_patch16_224()
+    model = vit_base_patch16_224_in21k()
     # 链接: https://pan.baidu.com/s/1zqb08naP0RPqqfSXfkB2EA  密码: eu9f
     weights_path = "./vit_base_patch16_224.pth"
     model.load_state_dict(torch.load(weights_path, map_location="cpu"))

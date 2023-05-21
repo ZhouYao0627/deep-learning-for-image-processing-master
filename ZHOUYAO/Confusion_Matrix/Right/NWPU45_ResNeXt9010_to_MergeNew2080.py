@@ -8,7 +8,7 @@ np.set_printoptions(threshold=np.inf)
 
 # best_acc: 0.9606349206349206
 # 绘制混淆矩阵
-def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):
+def plot_confusion_matrix(cm, classes, normalize=False, cmap=plt.cm.Blues):
     """
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
@@ -25,7 +25,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix'
     print(cm)
 
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title)
+    # plt.title(title)
     plt.colorbar()
     tick_marks = np.arange(len(classes))
     plt.xticks(tick_marks, classes, rotation=90, fontsize=4)
@@ -43,7 +43,7 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix'
     plt.tight_layout()
     plt.xlabel('Predicted label')
     plt.ylabel('True label')
-    plt.savefig("../plot/NWPU_resnext_9010_to_mergenew_2080_Fig1.png", dpi=500, format="png", bbox_inches='tight')
+    plt.savefig("../plot/NWPU_resnext_9010_to_mergenew_2080_Fig2.eps", dpi=600, format="eps", bbox_inches='tight')
     plt.show()
 
 
@@ -416,4 +416,4 @@ attack_types = ['airplane', 'airport', 'baseball_diamond', 'basketball_court', '
                 "sea_ice", "ship", "snowberg", "sparse_residential", "stadium", "storage_tank", "tennis_court",
                 "terrace", "thermal_power_station", "wetland"]
 
-plot_confusion_matrix(cnf_matrix, classes=attack_types, normalize=True, title='Confusion Matrix')
+plot_confusion_matrix(cnf_matrix, classes=attack_types, normalize=True)

@@ -2,38 +2,6 @@ import torch.nn as nn
 import torch
 
 
-class BasicBlock(nn.Module):
-    expansion = 1
-
-    def __init__(self, in_channel, out_channel, stride=1, downsample=None, **kwargs):
-        super(BasicBlock, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=in_channel, out_channels=out_channel,
-                               kernel_size=3, stride=stride, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(out_channel)
-        self.relu = nn.ReLU()
-        self.conv2 = nn.Conv2d(in_channels=out_channel, out_channels=out_channel,
-                               kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(out_channel)
-        self.downsample = downsample
-
-    def forward(self, x):
-        identity = x
-        if self.downsample is not None:
-            identity = self.downsample(x)
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-
-        out += identity
-        out = self.relu(out)
-
-        return out
-
-
 class Bottleneck(nn.Module):
     """
     注意：原论文中，在虚线残差结构的主分支上，第一个1x1卷积层的步距是2，第二个3x3卷积层步距是1。
@@ -61,8 +29,6 @@ class Bottleneck(nn.Module):
         self.bn3 = nn.BatchNorm2d(out_channel * self.expansion)
         self.relu = nn.ReLU(inplace=True)
 
-        #
-
         self.downsample = downsample
 
     def forward(self, x):
@@ -80,8 +46,6 @@ class Bottleneck(nn.Module):
 
         out = self.conv3(out)
         out = self.bn3(out)
-
-        #
 
         out += identity
         out = self.relu(out)
@@ -153,29 +117,22 @@ class ResNet(nn.Module):
         return x
 
 
-def resnet34(num_classes=1000, include_top=True):
-    return ResNet(BasicBlock, [3, 4, 6, 3], num_classes=num_classes, include_top=include_top)
-
-
 def resnet50(num_classes=1000, include_top=True):
-    # https://download.pytorch.org/models/resnet50-19c8e357.pth
     return ResNet(Bottleneck, [3, 4, 6, 3], num_classes=num_classes, include_top=include_top)
 
+
 # def resnet101(num_classes=1000, include_top=True):
-#     # https://download.pytorch.org/models/resnet101-5d3b4d8f.pth
 #     return ResNet(Bottleneck, [3, 4, 23, 3], num_classes=num_classes, include_top=include_top)
-#
-#
-# def resnext50_32x4d(num_classes=1000, include_top=True):
-#     # https://download.pytorch.org/models/resnext50_32x4d-7cdf4587.pth
-#     groups = 32
-#     width_per_group = 4
-#     return ResNet(Bottleneck, [3, 4, 6, 3], num_classes=num_classes, include_top=include_top, groups=groups,
-#                   width_per_group=width_per_group)
-#
-#
-def resnext101_32x8d(num_classes=1000, include_top=True):
-    # https://download.pytorch.org/models/resnext101_32x8d-8ba56ff5.pth
+
+
+def resnext50_32x4d(num_classes=1000, include_top=True):
+    groups = 32
+    width_per_group = 4
+    return ResNet(Bottleneck, [3, 4, 6, 3], num_classes=num_classes, include_top=include_top, groups=groups,
+                  width_per_group=width_per_group)
+
+
+def resnext101(num_classes=1000, include_top=True):
     groups = 32
     width_per_group = 8
     return ResNet(Bottleneck, [3, 4, 23, 3], num_classes=num_classes, include_top=include_top, groups=groups,

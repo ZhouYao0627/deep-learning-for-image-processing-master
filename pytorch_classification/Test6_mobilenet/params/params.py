@@ -139,7 +139,6 @@
 
 # 以下代码可计算params，memory，MAdd，Flops and MemR + W
 from torchstat import stat
-import torchvision.models as models
 from pytorch_classification.Test6_mobilenet.model_v2_bilinear1 import MobileNetV2
 
 model = MobileNetV2()

@@ -8,7 +8,7 @@ import torch.optim as optim
 from torchvision import transforms, datasets
 from tqdm import tqdm
 
-from pytorch_classification.Test5_resnet.model import resnet34
+from pytorch_classification.Test5_resnet.model import resnet50
 
 
 def main():
@@ -54,7 +54,7 @@ def main():
 
     print("using {} images for training, {} images for validation.".format(train_num, val_num))
 
-    net = resnet34()
+    net = resnet50()
     # 使用了迁移学习 59-70
     # load pretrain weights
     # download url: https://download.pytorch.org/models/resnet34-333f7ec4.pth
@@ -62,6 +62,7 @@ def main():
     assert os.path.exists(model_weight_path), "file {} does not exist.".format(model_weight_path)
     # torch.load_state_dict()函数就是用于将预训练的参数权重加载到新的模型之中
     net.load_state_dict(torch.load(model_weight_path, map_location=device))
+    print(net.parameters())
     # for param in net.parameters():
     #     param.requires_grad = False
 

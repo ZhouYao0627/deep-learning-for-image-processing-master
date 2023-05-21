@@ -1,31 +1,74 @@
 import os
 import json
 import sys
-
-import torch
-import torch.nn as nn
 import torch.optim as optim
 from torchvision import transforms, datasets
 from tqdm import tqdm
-from model_resnet import resnext101_32x8d
+from torch import nn
+import torch.nn.functional as F
+import torch
 
-# best: 0.976 -> 97.6
+from AIMAX_model_two import resnet50
+from AIMAX_model_two import resnext101_32x8d
+
+
+# from pytorch_classification.Test5_resnet.model import resnet50
+# from pytorch_classification.Test5_resnet.model import resnext101_32x8d
+
+
+class mergeblock(nn.Module):
+    def __init__(self, InData1, InData2):
+        super().__init__()
+        self.InData1 = InData1
+        self.InData2 = InData2
+        self.conv = nn.Sequential(nn.Conv2d(2048, 1, kernel_size=(1, 1), stride=(1, 1), padding="same"))
+
+    def forward(self):
+        x1 = self.conv(self.InData2)
+        x2 = self.conv(self.InData2)
+        result1 = torch.matmul(self.InData1, x1)
+        result2 = torch.add(result1, x2)
+        return result2
+
+
+class EF(nn.Module):
+
+    def __init__(self, net1, net2):
+        super().__init__()
+        self.net1 = net1
+        self.net2 = net2
+        self.avgpool = nn.Sequential(nn.AdaptiveAvgPool2d((1, 1)))
+        self.fc = nn.Sequential(nn.Linear(512 * 4, 21))
+
+    def forward(self, input):
+        f1 = self.net1(input)
+        f2 = self.net2(input)
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        # c = mergeblock(f1, f2)
+        # x = c.forward()
+        x = torch.add(f1, f2)
+        x = self.avgpool(x)
+        x = x.reshape(-1, 2048)
+        x = self.fc(x)
+        return x
+
+
 def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print("using {} device.".format(device))
 
     data_transform = {
-        "train": transforms.Compose([transforms.RandomResizedCrop(224),
+        "train": transforms.Compose([transforms.RandomResizedCrop(256),
                                      transforms.RandomHorizontalFlip(),
                                      transforms.ToTensor(),
                                      transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]),
-        "val": transforms.Compose([transforms.Resize(256),
-                                   transforms.CenterCrop(224),
+        "validation": transforms.Compose([transforms.Resize(256),
+                                   transforms.CenterCrop(256),
                                    transforms.ToTensor(),
                                    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])}
 
-    data_root = os.path.abspath(os.path.join(os.getcwd(), "../"))  # get data root path
-    image_path = os.path.join(data_root, "data_set", "AID30", "90_10")  # flower data set path
+    data_root = os.path.abspath(os.path.join(os.getcwd(), "../.."))  # get data root path
+    image_path = os.path.join(data_root, "data_set", "UCM")  # flower data set path
     assert os.path.exists(image_path), "{} path does not exist.".format(image_path)
     train_dataset = datasets.ImageFolder(root=os.path.join(image_path, "train"), transform=data_transform["train"])
     train_num = len(train_dataset)  # 3306
@@ -35,7 +78,7 @@ def main():
     cla_dict = dict((val, key) for key, val in flower_list.items())
     # write dict into json file
     json_str = json.dumps(cla_dict, indent=4)
-    with open('class_indices_AID30.json', 'w') as json_file:
+    with open('class_indices.json', 'w') as json_file:
         json_file.write(json_str)
 
     batch_size = 32
@@ -45,46 +88,48 @@ def main():
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size,
                                                shuffle=True, num_workers=nw)  # 207
 
-    validate_dataset = datasets.ImageFolder(root=os.path.join(image_path, "val"),
-                                            transform=data_transform["val"])  # 364
+    validate_dataset = datasets.ImageFolder(root=os.path.join(image_path, "validation"),
+                                            transform=data_transform["validation"])  # 364
     val_num = len(validate_dataset)  # 364
     validate_loader = torch.utils.data.DataLoader(validate_dataset, batch_size=batch_size,
                                                   shuffle=False, num_workers=nw)  # 23
 
     print("using {} images for training, {} images for validation.".format(train_num, val_num))
 
-    net = resnext101_32x8d()
+    net1 = resnet50(num_classes=21, include_top=False)
+    net2 = resnext101_32x8d(num_classes=21, include_top=False)
     # 使用了迁移学习 59-70
     # load pretrain weights
     # download url: https://download.pytorch.org/models/resnet34-333f7ec4.pth
-    model_weight_path = "./weights/resnext101_32x8d-8ba56ff5.pth"
-    assert os.path.exists(model_weight_path), "file {} does not exist.".format(model_weight_path)
+    # model_weight_path = "./resnet34-pre.pth"
+    # assert os.path.exists(model_weight_path), "file {} does not exist.".format(model_weight_path)
     # torch.load_state_dict()函数就是用于将预训练的参数权重加载到新的模型之中
-    net.load_state_dict(torch.load(model_weight_path, map_location=device))
-    print(net.parameters())
+    # net.load_state_dict(torch.load(model_weight_path, map_location=device))
     # for param in net.parameters():
     #     param.requires_grad = False
 
     # change fc layer structure
-    in_channel = net.fc.in_features  # 使用的是34的权重，故in_channel = 512*1 = 512
-    net.fc = nn.Linear(in_channel, 30)
-    net.to(device)
+    # in_channel = net.fc.in_features  # 使用的是34的权重，故in_channel = 512*1 = 512
+    # net.fc = nn.Linear(in_channel, 5)
+    # net1.to(device)
+    # net2.to(device)
+    net = EF(net1, net2)
 
     # define loss function
     loss_function = nn.CrossEntropyLoss()
 
     # construct an optimizer
     params = [p for p in net.parameters() if p.requires_grad]
-    optimizer = optim.Adam(params, lr=0.0001)
+    optimizer = optim.Adam(params, lr=0.001)
 
-    epochs = 100  # 原来是3
+    epochs = 300  # 原来是3
     best_acc = 0.0
-    save_path = './save_weights/train_AID30_9010.pth'
+    save_path = './AIMAX_train_two_add_UCM_cbam.pth'
     train_steps = len(train_loader)
     for epoch in range(epochs):
         # train
         net.train()
-        acc1 = 0.0
+        net.to(device)
         running_loss = 0.0
         train_bar = tqdm(train_loader, file=sys.stdout)
         for step, data in enumerate(train_bar):
@@ -97,11 +142,6 @@ def main():
 
             # print statistics
             running_loss += loss.item()
-
-            # 训练集的准确率
-            predict_y = torch.max(logits, dim=1)[1]
-            acc1 += torch.eq(predict_y, labels.to(device)).sum().item()
-            train_accurate = acc1 / train_num
 
             train_bar.desc = "train epoch[{}/{}] loss:{:.3f}".format(epoch + 1, epochs, loss)
 
@@ -120,21 +160,18 @@ def main():
                 val_bar.desc = "valid epoch[{}/{}]".format(epoch + 1, epochs)
 
         val_accurate = acc / val_num
-        print('[epoch %d] train_loss: %.3f  train_accuracy: %.3f  val_accuracy: %.3f' %
-              (epoch + 1, running_loss / train_steps, train_accurate, val_accurate))
+        print('[epoch %d] train_loss: %.3f  val_accuracy: %.3f' %
+              (epoch + 1, running_loss / train_steps, val_accurate))
 
         if val_accurate > best_acc:
             best_acc = val_accurate
             torch.save(net.state_dict(), save_path)
 
-        with open('./Draw/train_accurate_AID30_9010.txt', 'a+') as f:
-            f.write(str(train_accurate) + ',')
-
-        with open('./Draw/val_accurate_AID30_9010.txt', 'a+') as f:
+        with open('./Draw/val_accurate.txt', 'a+') as f:
             f.write(str(val_accurate) + ',')
 
         train_loss1 = running_loss / train_steps
-        with open('./Draw/train_loss_AID30_9010.txt', 'a+') as f:
+        with open('./Draw/train_loss.txt', 'a+') as f:
             f.write(str(train_loss1) + ',')
 
     print("best_acc", best_acc)

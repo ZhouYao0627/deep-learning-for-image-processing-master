@@ -1,37 +1,6 @@
-import torch.nn as nn
 import torch
-
-
-class BasicBlock(nn.Module):
-    expansion = 1
-
-    def __init__(self, in_channel, out_channel, stride=1, downsample=None, **kwargs):
-        super(BasicBlock, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=in_channel, out_channels=out_channel,
-                               kernel_size=3, stride=stride, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(out_channel)
-        self.relu = nn.ReLU()
-        self.conv2 = nn.Conv2d(in_channels=out_channel, out_channels=out_channel,
-                               kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(out_channel)
-        self.downsample = downsample
-
-    def forward(self, x):
-        identity = x
-        if self.downsample is not None:
-            identity = self.downsample(x)
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-
-        out += identity
-        out = self.relu(out)
-
-        return out
+import torch.nn as nn
+import math
 
 
 class Bottleneck(nn.Module):
@@ -60,9 +29,6 @@ class Bottleneck(nn.Module):
                                kernel_size=1, stride=1, bias=False)  # unsqueeze channels
         self.bn3 = nn.BatchNorm2d(out_channel * self.expansion)
         self.relu = nn.ReLU(inplace=True)
-
-        #
-
         self.downsample = downsample
 
     def forward(self, x):
@@ -81,18 +47,44 @@ class Bottleneck(nn.Module):
         out = self.conv3(out)
         out = self.bn3(out)
 
-        #
-
         out += identity
         out = self.relu(out)
 
         return out
 
 
-class ResNet(nn.Module):
+class GhostModule(nn.Module):
+    expansion = 1
+
+    def __init__(self, inp, oup, kernel_size=1, ratio=2, dw_size=3, stride=1, relu=True):
+        super(GhostModule, self).__init__()
+        self.oup = oup
+        init_channels = math.ceil(oup / ratio)  # 参考论文m = n/s
+        new_channels = init_channels * (ratio - 1)  # n(s-1)/s
+
+        self.primary_conv = nn.Sequential(
+            nn.Conv2d(inp, init_channels, kernel_size, stride, kernel_size // 2, bias=False),
+            nn.BatchNorm2d(init_channels),
+            nn.ReLU(inplace=True) if relu else nn.Sequential(),
+        )
+
+        self.cheap_operation = nn.Sequential(
+            nn.Conv2d(init_channels, new_channels, dw_size, 1, dw_size // 2, groups=init_channels, bias=False),
+            nn.BatchNorm2d(new_channels),
+            nn.ReLU(inplace=True) if relu else nn.Sequential(),
+        )
+
+    def forward(self, x):
+        x1 = self.primary_conv(x)
+        x2 = self.cheap_operation(x1)
+        out = torch.cat([x1, x2], dim=1)
+        return out[:, :self.oup, :, :]
+
+
+class ZYNet(nn.Module):
 
     def __init__(self, block, blocks_num, num_classes=1000, include_top=True, groups=1, width_per_group=64):
-        super(ResNet, self).__init__()
+        super(ZYNet, self).__init__()
         self.include_top = include_top
         self.in_channel = 64
 
@@ -118,15 +110,16 @@ class ResNet(nn.Module):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
 
     def _make_layer(self, block, channel, block_num, stride=1):
-        downsample = None
-        if stride != 1 or self.in_channel != channel * block.expansion:
-            downsample = nn.Sequential(
-                nn.Conv2d(self.in_channel, channel * block.expansion, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(channel * block.expansion))
+        # downsample = None
+        # if stride != 1 or self.in_channel != channel * block.expansion:
+        #     downsample = nn.Sequential(
+        #         nn.Conv2d(self.in_channel, channel * block.expansion, kernel_size=1, stride=stride, bias=False),
+        #         nn.BatchNorm2d(channel * block.expansion))
 
         layers = []
-        layers.append(block(self.in_channel, channel, downsample=downsample, stride=stride, groups=self.groups,
-                            width_per_group=self.width_per_group))
+        # layers.append(block(self.in_channel, channel, downsample=downsample, stride=stride, groups=self.groups, width_per_group=self.width_per_group))
+        self.ghost1 = GhostModule(self.in_channel, channel, relu=True)
+        # self.in_channel = channel * block.expansion
         self.in_channel = channel * block.expansion
 
         for _ in range(1, block_num):
@@ -153,30 +146,5 @@ class ResNet(nn.Module):
         return x
 
 
-def resnet34(num_classes=1000, include_top=True):
-    return ResNet(BasicBlock, [3, 4, 6, 3], num_classes=num_classes, include_top=include_top)
-
-
 def resnet50(num_classes=1000, include_top=True):
-    # https://download.pytorch.org/models/resnet50-19c8e357.pth
-    return ResNet(Bottleneck, [3, 4, 6, 3], num_classes=num_classes, include_top=include_top)
-
-# def resnet101(num_classes=1000, include_top=True):
-#     # https://download.pytorch.org/models/resnet101-5d3b4d8f.pth
-#     return ResNet(Bottleneck, [3, 4, 23, 3], num_classes=num_classes, include_top=include_top)
-#
-#
-# def resnext50_32x4d(num_classes=1000, include_top=True):
-#     # https://download.pytorch.org/models/resnext50_32x4d-7cdf4587.pth
-#     groups = 32
-#     width_per_group = 4
-#     return ResNet(Bottleneck, [3, 4, 6, 3], num_classes=num_classes, include_top=include_top, groups=groups,
-#                   width_per_group=width_per_group)
-#
-#
-def resnext101_32x8d(num_classes=1000, include_top=True):
-    # https://download.pytorch.org/models/resnext101_32x8d-8ba56ff5.pth
-    groups = 32
-    width_per_group = 8
-    return ResNet(Bottleneck, [3, 4, 23, 3], num_classes=num_classes, include_top=include_top, groups=groups,
-                  width_per_group=width_per_group)
+    return ZYNet(Bottleneck, [3, 4, 6, 3], num_classes=num_classes, include_top=include_top)

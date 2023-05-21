@@ -11,7 +11,7 @@ from model_resnet import resnext101_32x8d
 from torch.utils.tensorboard import SummaryWriter
 
 
-# best_acc 0.9904761904761905
+# best_acc 0.9904761904761905 -> 98.97
 def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     print("using {} device.".format(device))

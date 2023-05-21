@@ -67,8 +67,6 @@ class Inception(nn.Module):
         branch2 = self.branch2(x)
 
         return branch1 * branch2
-        # return torch.add(branch1, branch2)
-        # return torch.cat(outputs, 1)
 
 
 class BasicConv2d(nn.Module):
@@ -84,7 +82,7 @@ class BasicConv2d(nn.Module):
 
 
 class MobileNetV2(nn.Module):
-    def __init__(self, alpha=1.0, round_nearest=8):
+    def __init__(self, num_classes=19, alpha=1.0, round_nearest=8):
         super(MobileNetV2, self).__init__()
         block = InvertedResidual
         input_channel = _make_divisible(32 * alpha, round_nearest)
@@ -120,19 +118,6 @@ class MobileNetV2(nn.Module):
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
 
-        # 这是最后三层的卷积，池化和分类
-        # # building last several layers
-        # features.append(ConvBNReLU(input_channel, last_channel, 1))
-        # # combine feature layers
-        # self.features = nn.Sequential(*features)
-        #
-        # # building classifier
-        # self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        # self.classifier = nn.Sequential(
-        #     nn.Dropout(0.2),
-        #     nn.Linear(last_channel, num_classes)
-        # )
-
         self.fc = torch.nn.Linear(1024, 19)
 
         # weight initialization
@@ -151,8 +136,10 @@ class MobileNetV2(nn.Module):
     def forward(self, x):
         x = self.features(x)
         x = self.avgpool(x)
+
         x = torch.sqrt(x + 1e-5)
         x = torch.nn.functional.normalize(x)
+
         x = torch.flatten(x, 1)
         x = self.fc(x)
         return x

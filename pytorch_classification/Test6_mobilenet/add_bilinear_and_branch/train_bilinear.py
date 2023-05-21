@@ -5,16 +5,10 @@ import json
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from tensorflow.python.platform import analytics
 from torchvision import transforms, datasets
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 
 from pytorch_classification.Test6_mobilenet.model_v2_bilinear1 import MobileNetV2
-
-from sklearn.metrics import confusion_matrix  # 生成混淆矩阵函数
-import numpy as np
-import tensorflow as tf
 
 
 def main():
@@ -46,7 +40,7 @@ def main():
     cla_dict = dict((val, key) for key, val in flower_list.items())
     # write dict into json file
     json_str = json.dumps(cla_dict, indent=4)
-    with open('class_indices.json', 'w') as json_file:
+    with open('../class_indices.json', 'w') as json_file:
         json_file.write(json_str)
 
     nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
@@ -93,7 +87,7 @@ def main():
     optimizer = optim.Adam(params, lr=0.0001)
 
     best_acc = 0.0
-    save_path = './MobileNetV2.pth'
+    save_path = '../MobileNetV2.pth'
     train_steps = len(train_loader)
     for epoch in range(epochs):
         # train
@@ -135,10 +129,10 @@ def main():
             best_acc = val_accurate
             torch.save(net.state_dict(), save_path)
 
-        with open('./Draw/val_accurate.txt', 'a+') as f:
+        with open('../Draw/val_accurate.txt', 'a+') as f:
             f.write(str(val_accurate) + ',')
 
-        with open('./Draw/train_loss.txt', 'a+') as f:
+        with open('../Draw/train_loss.txt', 'a+') as f:
             f.write(str(loss) + ',')
 
     # print('best_acc: ' + str(best_acc))

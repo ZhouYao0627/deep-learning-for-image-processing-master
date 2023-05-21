@@ -101,13 +101,13 @@ if __name__ == '__main__':
                                                   num_workers=2)
     net = MobileNetV2(num_classes=19)
     # load pretrain weights  加载的是自己在数据集上跑出来的模型权重
-    model_weight_path = "MobileNetV2.pth"
+    model_weight_path = "../MobileNetV2.pth"
     assert os.path.exists(model_weight_path), "cannot find {} file".format(model_weight_path)
     net.load_state_dict(torch.load(model_weight_path, map_location=device))
     net.to(device)
 
     # read class_indict
-    json_label_path = './class_indices.json'
+    json_label_path = '../class_indices.json'
     assert os.path.exists(json_label_path), "cannot find {} file".format(json_label_path)
     json_file = open(json_label_path, 'r')
     class_indict = json.load(json_file)

@@ -181,8 +181,7 @@ class GhostNet(nn.Module):
             for k, exp_size, c, se_ratio, s in cfg:
                 output_channel = _make_divisible(c * width, 4)
                 hidden_channel = _make_divisible(exp_size * width, 4)
-                layers.append(block(input_channel, hidden_channel, output_channel, k, s,
-                                    se_ratio=se_ratio))
+                layers.append(block(input_channel, hidden_channel, output_channel, k, s, se_ratio=se_ratio))
                 input_channel = output_channel
             stages.append(nn.Sequential(*layers))
 

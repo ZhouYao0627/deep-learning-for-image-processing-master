@@ -19311,7 +19311,7 @@ Brazilian_guava, Psidium_guineense
 gum_tree, gum
 eucalyptus, eucalypt, eucalyptus_tree
 flooded_gum
-mallee
+malleew
 stringybark
 smoothbark
 red_gum, peppermint, peppermint_gum, Eucalyptus_amygdalina

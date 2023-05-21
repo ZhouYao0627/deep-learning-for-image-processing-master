@@ -5,7 +5,7 @@ import seaborn as sns
 
 np.set_printoptions(threshold=np.inf)
 
-
+# best_acc: 0.9561904761904761
 # 绘制混淆矩阵
 def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):
     """
