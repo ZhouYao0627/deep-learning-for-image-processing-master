@@ -8,9 +8,12 @@ import torch.optim.lr_scheduler as lr_scheduler
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 
-from pytorch_classification.vision_transformer.my_dataset import MyDataSet
-from pytorch_classification.vision_transformer.vit_model import vit_base_patch16_224_in21k as create_model
-from pytorch_classification.vision_transformer.utils import read_split_data, train_one_epoch, evaluate
+# from pytorch_classification.vision_transformer.my_dataset import MyDataSet
+# from pytorch_classification.vision_transformer.vit_model import vit_base_patch16_224_in21k as create_model
+# from pytorch_classification.vision_transformer.utils import read_split_data, train_one_epoch, evaluate
+from vision_transformer.my_dataset import MyDataSet
+from vision_transformer.vit_model import vit_base_patch16_224_in21k as create_model
+from vision_transformer.utils import read_split_data, train_one_epoch, evaluate
 
 
 def main(args):
@@ -24,41 +27,27 @@ def main(args):
     train_images_path, train_images_label, val_images_path, val_images_label = read_split_data(args.data_path)
 
     data_transform = {
-        "train": transforms.Compose([transforms.RandomResizedCrop(224),
-                                     transforms.RandomHorizontalFlip(),
-                                     transforms.ToTensor(),
-                                     transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])]),
-        "val": transforms.Compose([transforms.Resize(256),
-                                   transforms.CenterCrop(224),
-                                   transforms.ToTensor(),
+        "train": transforms.Compose(
+            [transforms.RandomResizedCrop(224), transforms.RandomHorizontalFlip(), transforms.ToTensor(),
+             transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])]),
+        "val": transforms.Compose([transforms.Resize(256), transforms.CenterCrop(224), transforms.ToTensor(),
                                    transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])])}
 
     # 实例化训练数据集
-    train_dataset = MyDataSet(images_path=train_images_path,
-                              images_class=train_images_label,
+    train_dataset = MyDataSet(images_path=train_images_path, images_class=train_images_label,
                               transform=data_transform["train"])
 
     # 实例化验证数据集
-    val_dataset = MyDataSet(images_path=val_images_path,
-                            images_class=val_images_label,
-                            transform=data_transform["val"])
+    val_dataset = MyDataSet(images_path=val_images_path, images_class=val_images_label, transform=data_transform["val"])
 
     batch_size = args.batch_size
     nw = min([os.cpu_count(), batch_size if batch_size > 1 else 0, 8])  # number of workers
     print('Using {} dataloader workers every process'.format(nw))
-    train_loader = torch.utils.data.DataLoader(train_dataset,
-                                               batch_size=batch_size,
-                                               shuffle=True,
-                                               pin_memory=True,
-                                               num_workers=nw,
-                                               collate_fn=train_dataset.collate_fn)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True,
+                                               num_workers=nw, collate_fn=train_dataset.collate_fn)
 
-    val_loader = torch.utils.data.DataLoader(val_dataset,
-                                             batch_size=batch_size,
-                                             shuffle=False,
-                                             pin_memory=True,
-                                             num_workers=nw,
-                                             collate_fn=val_dataset.collate_fn)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False, pin_memory=True,
+                                             num_workers=nw, collate_fn=val_dataset.collate_fn)
 
     model = create_model(num_classes=5, has_logits=False).to(device)
 
@@ -88,19 +77,13 @@ def main(args):
 
     for epoch in range(args.epochs):
         # train
-        train_loss, train_acc = train_one_epoch(model=model,
-                                                optimizer=optimizer,
-                                                data_loader=train_loader,
-                                                device=device,
-                                                epoch=epoch)
+        train_loss, train_acc = train_one_epoch(model=model, optimizer=optimizer, data_loader=train_loader,
+                                                device=device, epoch=epoch)
 
         scheduler.step()
 
         # validate
-        val_loss, val_acc = evaluate(model=model,
-                                     data_loader=val_loader,
-                                     device=device,
-                                     epoch=epoch)
+        val_loss, val_acc = evaluate(model=model, data_loader=val_loader, device=device, epoch=epoch)
 
         tags = ["train_loss", "train_acc", "val_loss", "val_acc", "learning_rate"]
         tb_writer.add_scalar(tags[0], train_loss, epoch)

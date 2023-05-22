@@ -55,7 +55,7 @@ class PatchEmbed(nn.Module):
         self.grid_size = (img_size[0] // patch_size[0], img_size[1] // patch_size[1])  # (224//16, 224//16) -> (14, 14)
         self.num_patches = self.grid_size[0] * self.grid_size[1]  # 14 * 14 = 196
 
-        self.proj = nn.Conv2d(in_c, embed_dim, kernel_size=patch_size, stride=patch_size)  # ->14*14*768
+        self.proj = nn.Conv2d(in_c, embed_dim, kernel_size=patch_size, stride=patch_size)  # -> 14*14*768
         self.norm = norm_layer(embed_dim) if norm_layer else nn.Identity()
 
     def forward(self, x):
@@ -93,9 +93,9 @@ class Attention(nn.Module):
 
         # qkv(): -> [batch_size, num_patches + 1, 3 * total_embed_dim] = [B, 197, 3*768]
         # reshape: -> [batch_size, num_patches + 1, 3, num_heads, embed_dim_per_head] = [B, 197, 3, 8, 96]
-        # permute: -> [3, batch_size, num_heads, num_patches + 1, embed_dim_per_head] = [3, B, 8, 197, 96]
+        # permute: -> [3, batch_size, num_heads, num_patches + 1, embed_dim_per_head] = [3, B, 8, 197, 96]  # 自己的tips：这里的3相当于q,k,v的数据
         qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
-        # [batch_size, num_heads, num_patches + 1, embed_dim_per_head] = [B, 8, 197, 96]
+        # [batch_size, num_heads, num_patches + 1, embed_dim_per_head] = [B, 8, 197, 96]   # 自己的tips：相当于将上方permute后的数据分为三份
         q, k, v = qkv[0], qkv[1], qkv[2]  # make torchscript happy (cannot use tensor as tuple)
 
         # transpose: -> [batch_size, num_heads, embed_dim_per_head, num_patches + 1] = [B, 8, 96, 197]
@@ -203,16 +203,17 @@ class VisionTransformer(nn.Module):
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))  # 第一个1是batch维度，不用管，是为了后面concat拼接才加上的  # (1,1,768)
         self.dist_token = nn.Parameter(torch.zeros(1, 1, embed_dim)) if distilled else None  # -> 使用不到，仅在Deit中使用
         self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + self.num_tokens, embed_dim))  # (1,196+1,768)
-        self.pos_drop = nn.Dropout(p=drop_ratio)
+        self.pos_drop = nn.Dropout(p=drop_ratio)  # 加上Position Embedding后的Dropout
 
-        dpr = [x.item() for x in torch.linspace(0, drop_path_ratio, depth)]  # stochastic depth decay rule
+        dpr = [x.item() for x in
+               torch.linspace(0, drop_path_ratio, depth)]  # stochastic depth decay rule  # 使用该方法生成一个递增的序列
         self.blocks = nn.Sequential(*[  # 重复堆叠Encoder Block  # depth是重复堆叠的次数
             Block(dim=embed_dim, num_heads=num_heads, mlp_ratio=mlp_ratio, qkv_bias=qkv_bias, qk_scale=qk_scale,
                   drop_ratio=drop_ratio, attn_drop_ratio=attn_drop_ratio, drop_path_ratio=dpr[i],
                   norm_layer=norm_layer, act_layer=act_layer)
             for i in range(depth)
         ])
-        self.norm = norm_layer(embed_dim)
+        self.norm = norm_layer(embed_dim)  # Encoder Block后的Layer Norm
 
         # Representation layer
         if representation_size and not distilled:
@@ -228,6 +229,7 @@ class VisionTransformer(nn.Module):
 
         # Classifier head(s)
         self.head = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
+        # 下方三行代码使用不到，仅在Deit中使用
         self.head_dist = None
         if distilled:
             self.head_dist = nn.Linear(self.embed_dim, self.num_classes) if num_classes > 0 else nn.Identity()
@@ -244,8 +246,8 @@ class VisionTransformer(nn.Module):
         # [B, C, H, W] -> [B, num_patches, embed_dim] = [B, 196, 768]
         x = self.patch_embed(x)
         # [1, 1, 768] -> [B, 1, 768]
-        cls_token = self.cls_token.expand(x.shape[0], -1, -1)
-        if self.dist_token is None:
+        cls_token = self.cls_token.expand(x.shape[0], -1, -1)  # 将cls_token在Batch维度复制batch_size份
+        if self.dist_token is None:  # 不使用Deit，故一直为None
             x = torch.cat((cls_token, x), dim=1)  # [B, 197, 768]  # 将Patch Embedding和Class token进行concat
         else:
             x = torch.cat((cls_token, self.dist_token.expand(x.shape[0], -1, -1), x), dim=1)
@@ -254,13 +256,14 @@ class VisionTransformer(nn.Module):
         x = self.blocks(x)
         x = self.norm(x)
         if self.dist_token is None:
+            # 第一个维度是batch维度，不用管它，第二个维度上索引为0的数据在上方cat拼接时是放在最前面的
             return self.pre_logits(x[:, 0])
         else:
             return x[:, 0], x[:, 1]
 
     def forward(self, x):
         x = self.forward_features(x)
-        if self.head_dist is not None:
+        if self.head_dist is not None:  # 不使用Deit，故一直为None
             x, x_dist = self.head(x[0]), self.head_dist(x[1])
             if self.training and not torch.jit.is_scripting():
                 # during inference, return the average of both classifier predictions
@@ -268,7 +271,7 @@ class VisionTransformer(nn.Module):
             else:
                 return (x + x_dist) / 2
         else:
-            x = self.head(x)
+            x = self.head(x)  # 即最后的全连接层
         return x
 
 
@@ -314,13 +317,8 @@ def vit_base_patch16_224_in21k(num_classes: int = 21843, has_logits: bool = True
     weights ported from official Google JAX impl:
     https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-vitjx/jx_vit_base_patch16_224_in21k-e5005f0a.pth
     """
-    model = VisionTransformer(img_size=224,
-                              patch_size=16,
-                              embed_dim=768,
-                              depth=12,
-                              num_heads=12,
-                              representation_size=768 if has_logits else None,
-                              num_classes=num_classes)
+    model = VisionTransformer(img_size=224, patch_size=16, embed_dim=768, depth=12, num_heads=12,
+                              representation_size=768 if has_logits else None, num_classes=num_classes)
     return model
 
 
