@@ -29,7 +29,7 @@ def read_split_data(root: str, val_rate: float = 0.2):
     val_images_path = []  # 存储验证集的所有图片路径
     val_images_label = []  # 存储验证集图片对应索引信息
     every_class_num = []  # 存储每个类别的样本总数
-    supported = [".jpg", ".JPG", ".png", ".PNG"]  # 支持的文件后缀类型
+    supported = [".jpg", ".JPG", ".png", ".PNG", ".tif"]  # 支持的文件后缀类型
     # 遍历每个文件夹下的文件
     for cla in flower_class:
         cla_path = os.path.join(root, cla)
