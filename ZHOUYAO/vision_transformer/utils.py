@@ -10,7 +10,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 
-def read_split_data(root: str, val_rate: float = 0.2):
+def read_split_data(root: str, val_rate: float = 0.8):
     random.seed(0)  # 保证随机结果可复现
     assert os.path.exists(root), "dataset root: {} does not exist.".format(root)
 

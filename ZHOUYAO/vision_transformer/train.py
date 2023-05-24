@@ -49,7 +49,7 @@ def main(args):
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=False, pin_memory=True,
                                              num_workers=nw, collate_fn=val_dataset.collate_fn)
 
-    model = create_model(num_classes=21, has_logits=False).to(device)
+    model = create_model(num_classes=30, has_logits=False).to(device)
 
     if args.weights != "":
         assert os.path.exists(args.weights), "weights file: '{}' not exist.".format(args.weights)
@@ -92,20 +92,23 @@ def main(args):
         tb_writer.add_scalar(tags[3], val_acc, epoch)
         tb_writer.add_scalar(tags[4], optimizer.param_groups[0]["lr"], epoch)
 
+        # print('===[epoch %d] train_loss: %.3f  train_acc: %.3f val_loss: %.3f  val_acc: %.3f'
+        #       % (epoch + 1, train_loss, train_acc, val_loss, val_acc))
+
         torch.save(model.state_dict(), "./weights/model-{}.pth".format(epoch))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--num_classes', type=int, default=5)
-    parser.add_argument('--epochs', type=int, default=10)
-    parser.add_argument('--batch-size', type=int, default=256)
+    parser.add_argument('--num_classes', type=int, default=30)
+    parser.add_argument('--epochs', type=int, default=100)
+    parser.add_argument('--batch-size', type=int, default=64)
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--lrf', type=float, default=0.01)
 
     # 数据集所在根目录
     # http://download.tensorflow.org/example_images/flower_photos.tgz
-    parser.add_argument('--data-path', type=str, default="../data_set/UCM21/UC_21")
+    parser.add_argument('--data-path', type=str, default="../data_set/AID30/AID_30")
     parser.add_argument('--model-name', default='', help='create model name')
 
     # 预训练权重路径，如果不想载入就设置为空字符
